@@ -1,0 +1,18 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjEyMzQ1LCJ0eXBlIjoiY3VzdG9keSIsImtleSI6IjB4Li4uIn0",
+    "payload": "eyJkb21haW4iOiJ5b3VyLWFwcC52ZXJjZWwuYXBwIn0",
+    "signature": "YOUR_SIGNATURE_HERE"
+  },
+  "frame": {
+    "version": "1",
+    "name": "Daily Tasks",
+    "iconUrl": "https://your-app.vercel.app/images/icon.png",
+    "homeUrl": "https://your-app.vercel.app",
+    "imageUrl": "https://your-app.vercel.app/images/og-image.png",
+    "buttonTitle": "✨ Open App",
+    "splashImageUrl": "https://your-app.vercel.app/images/splash.png",
+    "splashBackgroundColor": "#0066CC",
+    "webhookUrl": "https://your-app.vercel.app/api/webhook"
+  }
+}
