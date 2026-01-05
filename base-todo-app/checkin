@@ -1,0 +1,14 @@
+export type CheckInMethod = "swipe" | "tap";
+
+const KEY = "checkin_method_v1";
+
+export function getCheckInMethod(): CheckInMethod {
+  if (typeof window === "undefined") return "swipe";
+  const v = window.localStorage.getItem(KEY);
+  return v === "tap" ? "tap" : "swipe";
+}
+
+export function setCheckInMethod(method: CheckInMethod) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(KEY, method);
+}
