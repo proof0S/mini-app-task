@@ -1,0 +1,40 @@
+import { useState } from 'react';
+
+export default function CheckIn() {
+  const [checkInMode, setCheckInMode] = useState('tap');
+  const [isChecked, setIsChecked] = useState(false);
+
+  const handleTap = () => {
+    if (checkInMode === 'tap') {
+      setIsChecked(true);
+    }
+  };
+
+  return (
+    <div className="check-in-container">
+      <h2>Today's Check-in</h2>
+      
+      <div className="mode-selector">
+        <button 
+          onClick={() => setCheckInMode('tap')}
+          className={checkInMode === 'tap' ? 'active' : ''}
+        >
+          Tap Mode
+        </button>
+        <button 
+          onClick={() => setCheckInMode('swipe')}
+          className={checkInMode === 'swipe' ? 'active' : ''}
+        >
+          Swipe Mode
+        </button>
+      </div>
+
+      <div 
+        className={`check-box ${isChecked ? 'checked' : ''}`}
+        onClick={handleTap}
+      >
+        {isChecked ? '✓' : 'Click or Swipe'}
+      </div>
+    </div>
+  );
+}
