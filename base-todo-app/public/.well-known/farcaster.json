@@ -1,18 +1,18 @@
 {
   "accountAssociation": {
-    "header": "eyJmaWQiOjEyMzQ1LCJ0eXBlIjoiY3VzdG9keSIsImtleSI6IjB4Li4uIn0",
-    "payload": "eyJkb21haW4iOiJ5b3VyLWFwcC52ZXJjZWwuYXBwIn0",
-    "signature": "YOUR_SIGNATURE_HERE"
+    "header": "eyJmaWQiOjUxODM2MywidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweDNlNDNhZDBEOWRhMDRlM0MxRDZjRTM3MUUwNmREYjNBYTBiMzhBQWUifQ",
+    "payload": "eyJkb21haW4iOiJtaW5pLWFwcC10YXNrLnZlcmNlbC5hcHAifQ",
+    "signature": "KJ7yr3VmxucVzcibNODwNEyyhssj5VB4Dy0pD/MFZIg+960zOcGWRw3wf4COAGpSRXPJHfHD8MLcbj9X57mYRRs="
   },
   "frame": {
     "version": "1",
     "name": "Daily Tasks",
-    "iconUrl": "https://your-app.vercel.app/images/icon.png",
-    "homeUrl": "https://your-app.vercel.app",
-    "imageUrl": "https://your-app.vercel.app/images/og-image.png",
-    "buttonTitle": "✨ Open App",
-    "splashImageUrl": "https://your-app.vercel.app/images/splash.png",
-    "splashBackgroundColor": "#0066CC",
-    "webhookUrl": "https://your-app.vercel.app/api/webhook"
+    "iconUrl": "https://mini-app-task.vercel.app/icon.png",
+    "homeUrl": "https://mini-app-task.vercel.app",
+    "imageUrl": "https://mini-app-task.vercel.app/image.png",
+    "buttonTitle": "Open App",
+    "splashImageUrl": "https://mini-app-task.vercel.app/splash.png",
+    "splashBackgroundColor": "#6200EA",
+    "webhookUrl": "https://mini-app-task.vercel.app/api/webhook"
   }
 }
