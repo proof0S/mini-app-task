@@ -1,12 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSettings } from '../contexts/SettingsContext';
+import CheckInMethodModal from './CheckInMethodModal';
 
 interface Todo {
   id: number;
   text: string;
   completed: boolean;
   emoji: string;
+  target?: number;
+  current?: number;
+  unit?: string;
 }
 
 interface TodoAppProps {
@@ -70,27 +75,17 @@ const StreakBadge = ({ streak }: { streak: number }) => {
   );
 };
 
-// Progress ring component
-const ProgressRing = ({ progress, total }: { progress: number; total: number }) => {
-  const percentage = total > 0 ? (progress / total) * 100 : 0;
+// Progress ring component - artık yüzde alıyor
+const ProgressRing = ({ percentage }: { percentage: number }) => {
   const circumference = 2 * Math.PI * 40;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   return (
     <div className="relative w-24 h-24">
       <svg className="w-24 h-24 -rotate-90">
+        <circle cx="48" cy="48" r="40" stroke="rgba(255,255,255,0.2)" strokeWidth="6" fill="none" />
         <circle
-          cx="48"
-          cy="48"
-          r="40"
-          stroke="rgba(255,255,255,0.2)"
-          strokeWidth="6"
-          fill="none"
-        />
-        <circle
-          cx="48"
-          cy="48"
-          r="40"
+          cx="48" cy="48" r="40"
           stroke="url(#glowGradient)"
           strokeWidth="6"
           fill="none"
@@ -98,9 +93,7 @@ const ProgressRing = ({ progress, total }: { progress: number; total: number }) 
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
           className="transition-all duration-700 ease-out"
-          style={{
-            filter: percentage === 100 ? 'drop-shadow(0 0 8px rgba(0, 212, 255, 0.8))' : 'none'
-          }}
+          style={{ filter: percentage === 100 ? 'drop-shadow(0 0 8px rgba(0, 212, 255, 0.8))' : 'none' }}
         />
         <defs>
           <linearGradient id="glowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -111,45 +104,212 @@ const ProgressRing = ({ progress, total }: { progress: number; total: number }) 
         </defs>
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-xl font-bold text-white drop-shadow-lg">{progress}/{total}</span>
-        <span className="text-[10px] text-white/70 font-medium">completed</span>
+        <span className="text-2xl font-bold text-white drop-shadow-lg">{Math.round(percentage)}%</span>
+        <span className="text-[10px] text-white/70 font-medium">progress</span>
       </div>
     </div>
   );
 };
 
-// Positive messages
+// Slider Todo Item (Swipe mode)
+const SliderTodoItem = ({ 
+  todo, 
+  onUpdate, 
+  onDelete,
+  onComplete
+}: { 
+  todo: Todo; 
+  onUpdate: (id: number, current: number) => void;
+  onDelete: (id: number) => void;
+  onComplete: () => void;
+}) => {
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const target = todo.target || 1;
+  const current = todo.current || 0;
+  const percentage = (current / target) * 100;
+
+  const handleInteraction = (clientX: number) => {
+    if (!sliderRef.current) return;
+    const rect = sliderRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    const newValue = Math.round((percent / 100) * target);
+    
+    if (newValue !== current) {
+      onUpdate(todo.id, newValue);
+      if (newValue === target && current !== target) {
+        onComplete();
+      }
+    }
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    handleInteraction(e.clientX);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging) handleInteraction(e.clientX);
+  };
+
+  const handleMouseUp = () => setIsDragging(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true);
+    handleInteraction(e.touches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isDragging) handleInteraction(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = () => setIsDragging(false);
+
+  return (
+    <div className={`group relative overflow-hidden rounded-2xl transition-all duration-300 ${
+      todo.completed 
+        ? 'bg-white/30 border-cyan-300/50 shadow-lg shadow-cyan-500/20' 
+        : 'bg-white/15 border-white/30'
+    } border backdrop-blur-xl`}>
+      <div className="p-4">
+        {/* Header */}
+        <div className="flex items-center mb-3">
+          <span className="text-xl mr-2">{todo.emoji}</span>
+          <span className={`flex-1 font-semibold ${todo.completed ? 'text-white/60 line-through' : 'text-white'}`}>
+            {todo.text}
+          </span>
+          <span className="text-white font-bold mr-2">
+            {current}/{target} {todo.unit || ''}
+          </span>
+          <button
+            onClick={() => onDelete(todo.id)}
+            className="opacity-0 group-hover:opacity-100 p-2 text-white/60 hover:text-red-300 hover:bg-red-500/20 rounded-xl transition-all"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Slider */}
+        <div
+          ref={sliderRef}
+          className="relative h-12 bg-white/20 rounded-full cursor-pointer"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          {/* Progress fill */}
+          <div 
+            className={`absolute inset-y-0 left-0 rounded-full transition-all duration-150 ${
+              todo.completed 
+                ? 'bg-gradient-to-r from-green-400 to-cyan-400' 
+                : 'bg-gradient-to-r from-cyan-400 to-blue-500'
+            }`}
+            style={{ width: `${percentage}%` }}
+          />
+          
+          {/* Emoji handle */}
+          <div 
+            className={`absolute top-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center transition-transform ${
+              isDragging ? 'scale-125' : 'scale-100'
+            }`}
+            style={{ 
+              left: `clamp(4px, calc(${percentage}% - 20px), calc(100% - 44px))`,
+            }}
+          >
+            <span className="text-2xl">{todo.completed ? '✅' : todo.emoji}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Tap Todo Item
+const TapTodoItem = ({ 
+  todo, 
+  onToggle, 
+  onDelete 
+}: { 
+  todo: Todo; 
+  onToggle: (id: number) => void;
+  onDelete: (id: number) => void;
+}) => {
+  return (
+    <div className={`group relative overflow-hidden rounded-2xl transition-all duration-300 ${
+      todo.completed 
+        ? 'bg-white/30 border-cyan-300/50 shadow-lg shadow-cyan-500/20' 
+        : 'bg-white/15 hover:bg-white/25 border-white/30'
+    } border backdrop-blur-xl`}>
+      <div className="flex items-center p-4">
+        <button
+          onClick={() => onToggle(todo.id)}
+          className={`relative w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+            todo.completed 
+              ? 'bg-gradient-to-r from-cyan-400 to-blue-500 border-transparent scale-110 shadow-lg shadow-cyan-500/50' 
+              : 'border-white/50 hover:border-cyan-300 hover:scale-105 bg-white/10'
+          }`}
+        >
+          {todo.completed && (
+            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+        </button>
+
+        <span className="ml-3 text-xl">{todo.emoji}</span>
+        <span className={`ml-3 flex-1 font-semibold transition-all duration-300 ${
+          todo.completed ? 'text-white/60 line-through' : 'text-white'
+        }`}>
+          {todo.text}
+        </span>
+
+        <button
+          onClick={() => onDelete(todo.id)}
+          className="opacity-0 group-hover:opacity-100 p-2 text-white/60 hover:text-red-300 hover:bg-red-500/20 rounded-xl transition-all"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const positiveMessages = [
-  "Amazing! 🌟",
-  "You did it! 💪",
-  "Superstar! ⚡",
-  "Incredible! 🎉",
-  "Bravo! 🏆",
-  "Legendary! 🚀",
-  "On fire! 🔥",
-  "Crushing it! 👑"
+  "Amazing! 🌟", "You did it! 💪", "Superstar! ⚡", "Incredible! 🎉",
+  "Bravo! 🏆", "Legendary! 🚀", "On fire! 🔥", "Crushing it! 👑"
 ];
 
 const emojis = ['✨', '🎯', '💪', '📚', '💧', '🏃', '🧘', '💼', '🎨', '🎵', '🍎', '💤'];
 
 const defaultTodos: Todo[] = [
-  { id: 1, text: "Morning workout", completed: false, emoji: "🏃" },
-  { id: 2, text: "Drink 8 glasses of water", completed: false, emoji: "💧" },
-  { id: 3, text: "Read for 30 minutes", completed: false, emoji: "📚" },
+  { id: 1, text: "Morning workout", completed: false, emoji: "🏃", target: 30, current: 0, unit: "min" },
+  { id: 2, text: "Drink water", completed: false, emoji: "💧", target: 8, current: 0, unit: "glasses" },
+  { id: 3, text: "Read book", completed: false, emoji: "📚", target: 30, current: 0, unit: "pages" },
 ];
 
 export default function TodoApp({ user }: TodoAppProps) {
+  const { checkInMethod, setShowMethodModal } = useSettings();
   const [todos, setTodos] = useState<Todo[]>(defaultTodos);
   const [newTodo, setNewTodo] = useState('');
+  const [newTarget, setNewTarget] = useState('');
+  const [newUnit, setNewUnit] = useState('');
   const [showConfetti, setShowConfetti] = useState(false);
   const [celebrationMessage, setCelebrationMessage] = useState('');
   const [streak, setStreak] = useState(1);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedEmoji, setSelectedEmoji] = useState('✨');
 
-  // Load from localStorage
   useEffect(() => {
-    const savedTodos = localStorage.getItem('dailyTasks_todos');
+    const savedTodos = localStorage.getItem('dailyTasks_todos_v2');
     const savedStreak = localStorage.getItem('dailyTasks_streak');
     const lastVisit = localStorage.getItem('dailyTasks_lastVisit');
     
@@ -161,11 +321,9 @@ export default function TodoApp({ user }: TodoAppProps) {
       setStreak(parseInt(savedStreak));
     }
     
-    // Check streak
     const today = new Date().toDateString();
     if (lastVisit !== today) {
       localStorage.setItem('dailyTasks_lastVisit', today);
-      // Reset todos for new day but keep streak
       if (lastVisit) {
         const lastDate = new Date(lastVisit);
         const todayDate = new Date(today);
@@ -173,12 +331,10 @@ export default function TodoApp({ user }: TodoAppProps) {
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
         if (diffDays === 1) {
-          // Consecutive day, increase streak
           const newStreak = streak + 1;
           setStreak(newStreak);
           localStorage.setItem('dailyTasks_streak', newStreak.toString());
         } else if (diffDays > 1) {
-          // Streak broken
           setStreak(1);
           localStorage.setItem('dailyTasks_streak', '1');
         }
@@ -186,33 +342,55 @@ export default function TodoApp({ user }: TodoAppProps) {
     }
   }, []);
 
-  // Save to localStorage
   useEffect(() => {
-    localStorage.setItem('dailyTasks_todos', JSON.stringify(todos));
+    localStorage.setItem('dailyTasks_todos_v2', JSON.stringify(todos));
   }, [todos]);
 
+  // Toplam ilerleme yüzdesi hesaplama
+  const calculateTotalProgress = () => {
+    if (todos.length === 0) return 0;
+    
+    const totalPercentage = todos.reduce((sum, todo) => {
+      const target = todo.target || 1;
+      const current = todo.current || 0;
+      const taskPercentage = (current / target) * 100;
+      return sum + Math.min(taskPercentage, 100); // max %100
+    }, 0);
+    
+    return totalPercentage / todos.length;
+  };
+
+  const totalProgress = calculateTotalProgress();
   const completedCount = todos.filter(t => t.completed).length;
+
+  const triggerCelebration = () => {
+    setShowConfetti(true);
+    setCelebrationMessage(positiveMessages[Math.floor(Math.random() * positiveMessages.length)]);
+    setTimeout(() => {
+      setShowConfetti(false);
+      setCelebrationMessage('');
+    }, 2000);
+    if (navigator.vibrate) {
+      navigator.vibrate([50, 30, 50]);
+    }
+  };
 
   const toggleTodo = (id: number) => {
     setTodos(prev => prev.map(todo => {
       if (todo.id === id) {
         const newCompleted = !todo.completed;
-        
-        if (newCompleted) {
-          setShowConfetti(true);
-          setCelebrationMessage(positiveMessages[Math.floor(Math.random() * positiveMessages.length)]);
-          
-          setTimeout(() => {
-            setShowConfetti(false);
-            setCelebrationMessage('');
-          }, 2000);
-          
-          if (navigator.vibrate) {
-            navigator.vibrate([50, 30, 50]);
-          }
-        }
-        
-        return { ...todo, completed: newCompleted };
+        if (newCompleted) triggerCelebration();
+        return { ...todo, completed: newCompleted, current: newCompleted ? todo.target : 0 };
+      }
+      return todo;
+    }));
+  };
+
+  const updateTodoProgress = (id: number, current: number) => {
+    setTodos(prev => prev.map(todo => {
+      if (todo.id === id) {
+        const completed = current >= (todo.target || 1);
+        return { ...todo, current, completed };
       }
       return todo;
     }));
@@ -220,13 +398,19 @@ export default function TodoApp({ user }: TodoAppProps) {
 
   const addTodo = () => {
     if (newTodo.trim()) {
+      const target = parseInt(newTarget) || 1;
       setTodos(prev => [...prev, {
         id: Date.now(),
         text: newTodo,
         completed: false,
-        emoji: selectedEmoji
+        emoji: selectedEmoji,
+        target: target,
+        current: 0,
+        unit: newUnit || ''
       }]);
       setNewTodo('');
+      setNewTarget('');
+      setNewUnit('');
       setShowAddForm(false);
       setSelectedEmoji('✨');
     }
@@ -243,17 +427,16 @@ export default function TodoApp({ user }: TodoAppProps) {
         background: 'linear-gradient(135deg, #0066CC 0%, #0099FF 25%, #00BFFF 50%, #6B5BFF 75%, #00D4FF 100%)'
       }}
     >
-      {/* Animated glass orbs */}
+      <CheckInMethodModal />
+
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 -left-20 w-80 h-80 bg-cyan-300/30 rounded-full blur-3xl animate-float" />
         <div className="absolute bottom-20 -right-20 w-96 h-96 bg-blue-400/30 rounded-full blur-3xl animate-float-delayed" />
         <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-purple-400/20 rounded-full blur-3xl animate-float-slow" />
-        <div className="absolute top-10 right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl animate-pulse-slow" />
       </div>
 
       <Confetti active={showConfetti} />
 
-      {/* Celebration message */}
       {celebrationMessage && (
         <div className="fixed top-1/3 left-1/2 -translate-x-1/2 z-50 animate-bounce-in">
           <div className="px-8 py-4 bg-white/30 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50">
@@ -266,28 +449,45 @@ export default function TodoApp({ user }: TodoAppProps) {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-black text-white drop-shadow-lg">
-              Daily Tasks
-            </h1>
-            <p className="text-white/80 text-sm font-medium drop-shadow">
+            <h1 className="text-3xl font-black text-white drop-shadow-lg">Daily Tasks</h1>
+            <p className="text-white/80 text-sm font-medium">
               {user?.displayName ? `Hey ${user.displayName}! ✨` : 'Build better habits ✨'}
             </p>
           </div>
-          <StreakBadge streak={streak} />
+          <div className="flex items-center gap-2">
+            <StreakBadge streak={streak} />
+            <button
+              onClick={() => setShowMethodModal(true)}
+              className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all"
+            >
+              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Mode indicator */}
+        <div className="mb-4 flex items-center justify-center">
+          <div className="px-3 py-1 rounded-full bg-white/20 text-white/80 text-xs font-medium">
+            {checkInMethod === 'swipe' ? '👆 Slide to track progress' : '👆 Tap to complete'}
+          </div>
         </div>
 
         {/* Progress section */}
         <div className="flex items-center justify-between mb-6 p-5 rounded-3xl bg-white/20 backdrop-blur-xl border border-white/30 shadow-xl">
-          <ProgressRing progress={completedCount} total={todos.length} />
+          <ProgressRing percentage={totalProgress} />
           <div className="text-right">
             <p className="text-white/70 text-sm font-medium">Today's progress</p>
             <p className="text-white text-4xl font-black drop-shadow-lg">
-              {todos.length > 0 ? Math.round((completedCount / todos.length) * 100) : 0}%
+              {Math.round(totalProgress)}%
+            </p>
+            <p className="text-white/60 text-xs mt-1">
+              {completedCount}/{todos.length} tasks done
             </p>
             {completedCount === todos.length && todos.length > 0 && (
-              <p className="text-cyan-200 text-sm font-semibold mt-1 animate-pulse">
-                🎉 All done!
-              </p>
+              <p className="text-cyan-200 text-sm font-semibold mt-1 animate-pulse">🎉 All done!</p>
             )}
           </div>
         </div>
@@ -295,61 +495,32 @@ export default function TodoApp({ user }: TodoAppProps) {
         {/* Todo list */}
         <div className="space-y-3 mb-6">
           {todos.map((todo) => (
-            <div
-              key={todo.id}
-              className={`group relative overflow-hidden rounded-2xl transition-all duration-300 ${
-                todo.completed 
-                  ? 'bg-white/30 border-cyan-300/50 shadow-lg shadow-cyan-500/20' 
-                  : 'bg-white/15 hover:bg-white/25 border-white/30'
-              } border backdrop-blur-xl`}
-            >
-              <div className="flex items-center p-4">
-                <button
-                  onClick={() => toggleTodo(todo.id)}
-                  className={`relative w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
-                    todo.completed 
-                      ? 'bg-gradient-to-r from-cyan-400 to-blue-500 border-transparent scale-110 shadow-lg shadow-cyan-500/50' 
-                      : 'border-white/50 hover:border-cyan-300 hover:scale-105 bg-white/10'
-                  }`}
-                >
-                  {todo.completed && (
-                    <svg className="w-4 h-4 text-white animate-check drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </button>
-
-                <span className="ml-3 text-xl drop-shadow">{todo.emoji}</span>
-                <span className={`ml-3 flex-1 font-semibold transition-all duration-300 drop-shadow ${
-                  todo.completed ? 'text-white/60 line-through' : 'text-white'
-                }`}>
-                  {todo.text}
-                </span>
-
-                <button
-                  onClick={() => deleteTodo(todo.id)}
-                  className="opacity-0 group-hover:opacity-100 p-2 text-white/60 hover:text-red-300 hover:bg-red-500/20 rounded-xl transition-all"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </div>
-
-              {todo.completed && (
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-shine" />
-              )}
-            </div>
+            checkInMethod === 'swipe' ? (
+              <SliderTodoItem
+                key={todo.id}
+                todo={todo}
+                onUpdate={updateTodoProgress}
+                onDelete={deleteTodo}
+                onComplete={triggerCelebration}
+              />
+            ) : (
+              <TapTodoItem
+                key={todo.id}
+                todo={todo}
+                onToggle={toggleTodo}
+                onDelete={deleteTodo}
+              />
+            )
           ))}
         </div>
 
-        {/* Add todo section */}
+        {/* Add todo */}
         {!showAddForm ? (
           <button
             onClick={() => setShowAddForm(true)}
             className="w-full p-4 rounded-2xl border-2 border-dashed border-white/40 hover:border-white/70 hover:bg-white/10 transition-all duration-300 group"
           >
-            <div className="flex items-center justify-center gap-2 text-white/70 group-hover:text-white font-semibold drop-shadow">
+            <div className="flex items-center justify-center gap-2 text-white/70 group-hover:text-white font-semibold">
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
@@ -357,7 +528,7 @@ export default function TodoApp({ user }: TodoAppProps) {
             </div>
           </button>
         ) : (
-          <div className="p-4 rounded-3xl bg-white/20 backdrop-blur-xl border border-white/30 shadow-xl animate-slide-up">
+          <div className="p-4 rounded-3xl bg-white/20 backdrop-blur-xl border border-white/30 shadow-xl">
             <div className="flex flex-wrap gap-2 mb-4">
               {emojis.map(emoji => (
                 <button
@@ -378,11 +549,29 @@ export default function TodoApp({ user }: TodoAppProps) {
               type="text"
               value={newTodo}
               onChange={(e) => setNewTodo(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && addTodo()}
-              placeholder="What do you want to achieve?"
-              className="w-full px-4 py-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 focus:bg-white/30 mb-4 font-medium"
+              placeholder="Task name (e.g., Read book)"
+              className="w-full px-4 py-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 mb-3 font-medium"
               autoFocus
             />
+
+            {checkInMethod === 'swipe' && (
+              <div className="flex gap-3 mb-3">
+                <input
+                  type="number"
+                  value={newTarget}
+                  onChange={(e) => setNewTarget(e.target.value)}
+                  placeholder="Target (e.g., 30)"
+                  className="flex-1 px-4 py-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 font-medium"
+                />
+                <input
+                  type="text"
+                  value={newUnit}
+                  onChange={(e) => setNewUnit(e.target.value)}
+                  placeholder="Unit (e.g., pages)"
+                  className="flex-1 px-4 py-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 font-medium"
+                />
+              </div>
+            )}
 
             <div className="flex gap-3">
               <button
@@ -393,7 +582,7 @@ export default function TodoApp({ user }: TodoAppProps) {
               </button>
               <button
                 onClick={addTodo}
-                className="flex-1 py-3 rounded-xl bg-white/40 text-white font-bold hover:bg-white/50 transition-all hover:scale-[1.02] shadow-lg border border-white/50 active:scale-[0.98]"
+                className="flex-1 py-3 rounded-xl bg-white/40 text-white font-bold hover:bg-white/50 transition-all shadow-lg border border-white/50"
               >
                 Add Task ✨
               </button>
@@ -401,7 +590,7 @@ export default function TodoApp({ user }: TodoAppProps) {
           </div>
         )}
 
-        {/* Bottom branding */}
+        {/* Branding */}
         <div className="mt-8 flex items-center justify-center gap-2 text-white/50 text-sm font-medium">
           <span>Built on</span>
           <div className="flex items-center gap-1.5 bg-white/20 px-2 py-1 rounded-lg">

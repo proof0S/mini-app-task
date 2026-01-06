@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import sdk from '@farcaster/frame-sdk';
 import TodoApp from '@/components/TodoApp';
+import { SettingsProvider } from '@/contexts/SettingsContext';
 
 export default function Home() {
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
@@ -17,7 +18,6 @@ export default function Home() {
           setUser(context.user);
         }
         
-        // Hide splash screen and show app
         sdk.actions.ready();
         setIsSDKLoaded(true);
       } catch (error) {
@@ -47,5 +47,9 @@ export default function Home() {
     );
   }
 
-  return <TodoApp user={user} />;
+  return (
+    <SettingsProvider>
+      <TodoApp user={user} />
+    </SettingsProvider>
+  );
 }
