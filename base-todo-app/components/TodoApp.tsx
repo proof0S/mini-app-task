@@ -14,6 +14,15 @@ interface Todo {
   unit?: string;
 }
 
+interface LeaderboardUser {
+  fid: number;
+  username: string;
+  displayName: string;
+  pfpUrl?: string;
+  score: number;
+  tasksCompleted: number;
+}
+
 interface TodoAppProps {
   user?: {
     fid?: number;
@@ -22,6 +31,69 @@ interface TodoAppProps {
     pfpUrl?: string;
   } | null;
 }
+
+// Emoji bazlı esprili mesajlar
+const funnyMessages: Record<string, string[]> = {
+  '💧': [
+    "H2O seni seviyor! Böbrekler teşekkür eder 💧",
+    "Balıklar kıskanıyor şu an 🐟",
+    "Cilt bakımının %90'ı tamam! ✨",
+    "Çöl değil vaha oldun! 🏝️",
+  ],
+  '📚': [
+    "Einstein kıskanır bu tempoyu! 🧠",
+    "Beyin kasların çalışıyor! 💪",
+    "Kütüphaneci olsan zengin olurdun 📖",
+    "Netflix: Am I a joke to you? 😅",
+  ],
+  '🏃': [
+    "Usain Bolt izliyor olabilir... 👀",
+    "Kalorilerin kaçıyor! Yakala! 🔥",
+    "Ayakkabılar gurur duyuyor 👟",
+    "Asansör üzgün, merdiven mutlu! 😂",
+  ],
+  '🧘': [
+    "Namaste! Bir kahve hak ettin ☕",
+    "İç huzur: Yükleniyor... ✅",
+    "Stres seviyesi: 📉📉📉",
+    "Buda seni onaylıyor 🙏",
+  ],
+  '💪': [
+    "Kaslar: Online! 💪",
+    "Ayna bugün mutlu! 😎",
+    "Thor kıskanç bakıyor ⚡",
+    "Protein shake zamanı! 🥤",
+  ],
+  '🍎': [
+    "Doktor uzakta kaldı! 🏥",
+    "Vitamin deposu oldun! 🌈",
+    "Sağlıklı yaşam +100 HP ❤️",
+    "Meyve tabağı seni seviyor 🍇",
+  ],
+  '💤': [
+    "Rüyalar güzel olsun! 🌙",
+    "Uyku borcu: Ödendi ✅",
+    "Yastık seni özlemişti! 🛏️",
+    "8 saat kulübüne hoş geldin! 😴",
+  ],
+  'default': [
+    "Harikasın! Böyle devam! 🌟",
+    "Süpersin! Durma! 🚀",
+    "Efsane hareket! 👑",
+    "Kendini aştın! 💫",
+    "Bu tempo çok iyi! 🔥",
+    "Hedefleri eziyorsun! 💪",
+  ]
+};
+
+// Streak mesajları
+const streakMessages: Record<number, string> = {
+  3: "3 gün! Alışkanlık oluşuyor 🌱",
+  7: "1 hafta! Artık bu senin rutinin 🔥",
+  14: "2 hafta! Durdurulamaz oldun 🚀",
+  21: "21 gün! Bilim diyor ki: Bu artık alışkanlık! 🧬",
+  30: "1 ay! Efsane statüsüne ulaştın 👑",
+};
 
 // Confetti component
 const Confetti = ({ active }: { active: boolean }) => {
@@ -75,7 +147,7 @@ const StreakBadge = ({ streak }: { streak: number }) => {
   );
 };
 
-// Progress ring component - artık yüzde alıyor
+// Progress ring component
 const ProgressRing = ({ percentage }: { percentage: number }) => {
   const circumference = 2 * Math.PI * 40;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
@@ -106,6 +178,78 @@ const ProgressRing = ({ percentage }: { percentage: number }) => {
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-2xl font-bold text-white drop-shadow-lg">{Math.round(percentage)}%</span>
         <span className="text-[10px] text-white/70 font-medium">progress</span>
+      </div>
+    </div>
+  );
+};
+
+// Leaderboard component
+const Leaderboard = ({ 
+  users, 
+  currentUserFid,
+  onClose 
+}: { 
+  users: LeaderboardUser[];
+  currentUserFid?: number;
+  onClose: () => void;
+}) => {
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-gradient-to-b from-indigo-900 to-purple-900 rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-white/20">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-white">🏆 Leaderboard</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-white/10 rounded-xl transition-all"
+          >
+            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          {users.map((user, index) => (
+            <div
+              key={user.fid}
+              className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
+                user.fid === currentUserFid 
+                  ? 'bg-cyan-500/30 border border-cyan-400/50' 
+                  : 'bg-white/10'
+              }`}
+            >
+              <span className="text-2xl font-bold text-white/80 w-8">
+                {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+              </span>
+              
+              {user.pfpUrl ? (
+                <img src={user.pfpUrl} alt="" className="w-10 h-10 rounded-full" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                  <span className="text-lg">👤</span>
+                </div>
+              )}
+              
+              <div className="flex-1">
+                <p className="text-white font-semibold text-sm">
+                  {user.displayName || user.username}
+                </p>
+                <p className="text-white/60 text-xs">
+                  {user.tasksCompleted} tasks
+                </p>
+              </div>
+              
+              <div className="text-right">
+                <p className="text-white font-bold">{user.score}</p>
+                <p className="text-white/60 text-xs">points</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-white/50 text-xs text-center mt-4">
+          Complete tasks to earn points! 🎯
+        </p>
       </div>
     </div>
   );
@@ -173,7 +317,6 @@ const SliderTodoItem = ({
         : 'bg-white/15 border-white/30'
     } border backdrop-blur-xl`}>
       <div className="p-4">
-        {/* Header */}
         <div className="flex items-center mb-3">
           <span className="text-xl mr-2">{todo.emoji}</span>
           <span className={`flex-1 font-semibold ${todo.completed ? 'text-white/60 line-through' : 'text-white'}`}>
@@ -192,7 +335,6 @@ const SliderTodoItem = ({
           </button>
         </div>
 
-        {/* Slider */}
         <div
           ref={sliderRef}
           className="relative h-12 bg-white/20 rounded-full cursor-pointer"
@@ -204,7 +346,6 @@ const SliderTodoItem = ({
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          {/* Progress fill */}
           <div 
             className={`absolute inset-y-0 left-0 rounded-full transition-all duration-150 ${
               todo.completed 
@@ -214,7 +355,6 @@ const SliderTodoItem = ({
             style={{ width: `${percentage}%` }}
           />
           
-          {/* Emoji handle */}
           <div 
             className={`absolute top-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center transition-transform ${
               isDragging ? 'scale-125' : 'scale-100'
@@ -252,7 +392,7 @@ const TapTodoItem = ({
           onClick={() => onToggle(todo.id)}
           className={`relative w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
             todo.completed 
-              ? 'bg-gradient-to-r from-cyan-400 to-blue-500 border-transparent scale-110 shadow-lg shadow-cyan-500/50' 
+              ? 'bg-cyan-500 border-transparent scale-110 shadow-lg shadow-cyan-500/30' 
               : 'border-white/50 hover:border-cyan-300 hover:scale-105 bg-white/10'
           }`}
         >
@@ -283,17 +423,21 @@ const TapTodoItem = ({
   );
 };
 
-const positiveMessages = [
-  "Amazing! 🌟", "You did it! 💪", "Superstar! ⚡", "Incredible! 🎉",
-  "Bravo! 🏆", "Legendary! 🚀", "On fire! 🔥", "Crushing it! 👑"
-];
-
 const emojis = ['✨', '🎯', '💪', '📚', '💧', '🏃', '🧘', '💼', '🎨', '🎵', '🍎', '💤'];
 
 const defaultTodos: Todo[] = [
   { id: 1, text: "Morning workout", completed: false, emoji: "🏃", target: 30, current: 0, unit: "min" },
   { id: 2, text: "Drink water", completed: false, emoji: "💧", target: 8, current: 0, unit: "glasses" },
   { id: 3, text: "Read book", completed: false, emoji: "📚", target: 30, current: 0, unit: "pages" },
+];
+
+// Demo leaderboard data
+const demoLeaderboard: LeaderboardUser[] = [
+  { fid: 1, username: "alice", displayName: "Alice ✨", score: 2450, tasksCompleted: 89 },
+  { fid: 2, username: "bob", displayName: "Bob 🚀", score: 2100, tasksCompleted: 76 },
+  { fid: 3, username: "charlie", displayName: "Charlie", score: 1850, tasksCompleted: 65 },
+  { fid: 4, username: "diana", displayName: "Diana 🌟", score: 1600, tasksCompleted: 58 },
+  { fid: 5, username: "eve", displayName: "Eve", score: 1200, tasksCompleted: 42 },
 ];
 
 export default function TodoApp({ user }: TodoAppProps) {
@@ -307,19 +451,18 @@ export default function TodoApp({ user }: TodoAppProps) {
   const [streak, setStreak] = useState(1);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedEmoji, setSelectedEmoji] = useState('✨');
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [userScore, setUserScore] = useState(0);
 
   useEffect(() => {
     const savedTodos = localStorage.getItem('dailyTasks_todos_v2');
     const savedStreak = localStorage.getItem('dailyTasks_streak');
+    const savedScore = localStorage.getItem('dailyTasks_score');
     const lastVisit = localStorage.getItem('dailyTasks_lastVisit');
     
-    if (savedTodos) {
-      setTodos(JSON.parse(savedTodos));
-    }
-    
-    if (savedStreak) {
-      setStreak(parseInt(savedStreak));
-    }
+    if (savedTodos) setTodos(JSON.parse(savedTodos));
+    if (savedStreak) setStreak(parseInt(savedStreak));
+    if (savedScore) setUserScore(parseInt(savedScore));
     
     const today = new Date().toDateString();
     if (lastVisit !== today) {
@@ -334,6 +477,18 @@ export default function TodoApp({ user }: TodoAppProps) {
           const newStreak = streak + 1;
           setStreak(newStreak);
           localStorage.setItem('dailyTasks_streak', newStreak.toString());
+          
+          // Streak milestone mesajı
+          if (streakMessages[newStreak]) {
+            setTimeout(() => {
+              setCelebrationMessage(streakMessages[newStreak]);
+              setShowConfetti(true);
+              setTimeout(() => {
+                setShowConfetti(false);
+                setCelebrationMessage('');
+              }, 3000);
+            }, 1000);
+          }
         } else if (diffDays > 1) {
           setStreak(1);
           localStorage.setItem('dailyTasks_streak', '1');
@@ -346,43 +501,56 @@ export default function TodoApp({ user }: TodoAppProps) {
     localStorage.setItem('dailyTasks_todos_v2', JSON.stringify(todos));
   }, [todos]);
 
-  // Toplam ilerleme yüzdesi hesaplama
+  useEffect(() => {
+    localStorage.setItem('dailyTasks_score', userScore.toString());
+  }, [userScore]);
+
   const calculateTotalProgress = () => {
     if (todos.length === 0) return 0;
-    
     const totalPercentage = todos.reduce((sum, todo) => {
       const target = todo.target || 1;
       const current = todo.current || 0;
-      const taskPercentage = (current / target) * 100;
-      return sum + Math.min(taskPercentage, 100); // max %100
+      return sum + Math.min((current / target) * 100, 100);
     }, 0);
-    
     return totalPercentage / todos.length;
   };
 
   const totalProgress = calculateTotalProgress();
   const completedCount = todos.filter(t => t.completed).length;
 
-  const triggerCelebration = () => {
+  // Emoji'ye göre esprili mesaj seç
+  const getFunnyMessage = (emoji: string) => {
+    const messages = funnyMessages[emoji] || funnyMessages['default'];
+    return messages[Math.floor(Math.random() * messages.length)];
+  };
+
+  const triggerCelebration = (emoji: string = '✨') => {
     setShowConfetti(true);
-    setCelebrationMessage(positiveMessages[Math.floor(Math.random() * positiveMessages.length)]);
+    setCelebrationMessage(getFunnyMessage(emoji));
+    
+    // Skor ekle
+    const points = 10 * (streak > 1 ? Math.min(streak, 5) : 1); // Streak bonusu
+    setUserScore(prev => prev + points);
+    
     setTimeout(() => {
       setShowConfetti(false);
       setCelebrationMessage('');
-    }, 2000);
+    }, 2500);
+    
     if (navigator.vibrate) {
       navigator.vibrate([50, 30, 50]);
     }
   };
 
   const toggleTodo = (id: number) => {
-    setTodos(prev => prev.map(todo => {
-      if (todo.id === id) {
-        const newCompleted = !todo.completed;
-        if (newCompleted) triggerCelebration();
-        return { ...todo, completed: newCompleted, current: newCompleted ? todo.target : 0 };
+    const todo = todos.find(t => t.id === id);
+    setTodos(prev => prev.map(t => {
+      if (t.id === id) {
+        const newCompleted = !t.completed;
+        if (newCompleted) triggerCelebration(t.emoji);
+        return { ...t, completed: newCompleted, current: newCompleted ? t.target : 0 };
       }
-      return todo;
+      return t;
     }));
   };
 
@@ -420,6 +588,21 @@ export default function TodoApp({ user }: TodoAppProps) {
     setTodos(prev => prev.filter(todo => todo.id !== id));
   };
 
+  // Kullanıcıyı leaderboard'a ekle
+  const getLeaderboardWithUser = () => {
+    const userEntry: LeaderboardUser = {
+      fid: user?.fid || 999999,
+      username: user?.username || 'you',
+      displayName: user?.displayName || 'You',
+      pfpUrl: user?.pfpUrl,
+      score: userScore,
+      tasksCompleted: completedCount,
+    };
+    
+    const combined = [...demoLeaderboard, userEntry];
+    return combined.sort((a, b) => b.score - a.score).slice(0, 10);
+  };
+
   return (
     <div 
       className="min-h-screen relative overflow-hidden"
@@ -428,6 +611,14 @@ export default function TodoApp({ user }: TodoAppProps) {
       }}
     >
       <CheckInMethodModal />
+      
+      {showLeaderboard && (
+        <Leaderboard 
+          users={getLeaderboardWithUser()} 
+          currentUserFid={user?.fid}
+          onClose={() => setShowLeaderboard(false)} 
+        />
+      )}
 
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 -left-20 w-80 h-80 bg-cyan-300/30 rounded-full blur-3xl animate-float" />
@@ -439,8 +630,8 @@ export default function TodoApp({ user }: TodoAppProps) {
 
       {celebrationMessage && (
         <div className="fixed top-1/3 left-1/2 -translate-x-1/2 z-50 animate-bounce-in">
-          <div className="px-8 py-4 bg-white/30 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50">
-            <span className="text-2xl font-bold text-white drop-shadow-lg">{celebrationMessage}</span>
+          <div className="px-6 py-4 bg-white/30 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 max-w-xs text-center">
+            <span className="text-xl font-bold text-white drop-shadow-lg">{celebrationMessage}</span>
           </div>
         </div>
       )}
@@ -468,11 +659,18 @@ export default function TodoApp({ user }: TodoAppProps) {
           </div>
         </div>
 
-        {/* Mode indicator */}
-        <div className="mb-4 flex items-center justify-center">
+        {/* Score & Leaderboard Button */}
+        <div className="mb-4 flex items-center justify-between">
           <div className="px-3 py-1 rounded-full bg-white/20 text-white/80 text-xs font-medium">
             {checkInMethod === 'swipe' ? '👆 Slide to track progress' : '👆 Tap to complete'}
           </div>
+          <button
+            onClick={() => setShowLeaderboard(true)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-yellow-400/20 hover:bg-yellow-400/30 transition-all border border-yellow-400/30"
+          >
+            <span>🏆</span>
+            <span className="text-white font-bold text-sm">{userScore}</span>
+          </button>
         </div>
 
         {/* Progress section */}
@@ -501,7 +699,7 @@ export default function TodoApp({ user }: TodoAppProps) {
                 todo={todo}
                 onUpdate={updateTodoProgress}
                 onDelete={deleteTodo}
-                onComplete={triggerCelebration}
+                onComplete={() => triggerCelebration(todo.emoji)}
               />
             ) : (
               <TapTodoItem
@@ -555,20 +753,20 @@ export default function TodoApp({ user }: TodoAppProps) {
             />
 
             {checkInMethod === 'swipe' && (
-              <div className="flex gap-3 mb-3">
+              <div className="flex flex-col sm:flex-row gap-2 mb-3">
                 <input
                   type="number"
                   value={newTarget}
                   onChange={(e) => setNewTarget(e.target.value)}
                   placeholder="Target (e.g., 30)"
-                  className="flex-1 px-4 py-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 font-medium"
+                  className="w-full sm:flex-1 min-w-0 px-4 py-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 font-medium"
                 />
                 <input
                   type="text"
                   value={newUnit}
                   onChange={(e) => setNewUnit(e.target.value)}
                   placeholder="Unit (e.g., pages)"
-                  className="flex-1 px-4 py-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 font-medium"
+                  className="w-full sm:flex-1 min-w-0 px-4 py-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 font-medium"
                 />
               </div>
             )}
