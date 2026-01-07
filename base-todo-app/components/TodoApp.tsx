@@ -6,6 +6,9 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useSound } from '../hooks/useSound';
 import CheckInMethodModal from './CheckInMethodModal';
 import ThemePickerModal from './ThemePickerModal';
+import CryptoTracker from './CryptoTracker';
+import Leaderboard from './Leaderboard';
+import { getLeaderboard, updateScore, LeaderboardEntry } from '../lib/supabase';
 
 interface Todo {
   id: number;
@@ -17,14 +20,6 @@ interface Todo {
   unit?: string;
 }
 
-interface LeaderboardUser {
-  fid: number;
-  username: string;
-  displayName: string;
-  pfpUrl?: string;
-  score: number;
-  tasksCompleted: number;
-}
 
 interface TodoAppProps {
   user?: {
@@ -173,49 +168,6 @@ const ProgressRing = ({ percentage, accentColor }: { percentage: number; accentC
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-2xl font-bold text-white drop-shadow-lg">{Math.round(percentage)}%</span>
         <span className="text-[10px] text-white/70 font-medium">progress</span>
-      </div>
-    </div>
-  );
-};
-
-// Leaderboard
-const Leaderboard = ({ users, currentUserFid, onClose }: { users: LeaderboardUser[]; currentUserFid?: number; onClose: () => void; }) => {
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-b from-indigo-900 to-purple-900 rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-white/20">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-white">🏆 Leaderboard</h2>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-all">
-            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div className="space-y-2">
-          {users.map((user, index) => (
-            <div key={user.fid} className={`flex items-center gap-3 p-3 rounded-xl transition-all ${user.fid === currentUserFid ? 'bg-cyan-500/30 border border-cyan-400/50' : 'bg-white/10'}`}>
-              <span className="text-2xl font-bold text-white/80 w-8">
-                {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
-              </span>
-              {user.pfpUrl ? (
-                <img src={user.pfpUrl} alt="" className="w-10 h-10 rounded-full" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                  <span className="text-lg">👤</span>
-                </div>
-              )}
-              <div className="flex-1">
-                <p className="text-white font-semibold text-sm">{user.displayName || user.username}</p>
-                <p className="text-white/60 text-xs">{user.tasksCompleted} tasks</p>
-              </div>
-              <div className="text-right">
-                <p className="text-white font-bold">{user.score}</p>
-                <p className="text-white/60 text-xs">points</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <p className="text-white/50 text-xs text-center mt-4">Complete tasks to earn points! 🎯</p>
       </div>
     </div>
   );
@@ -417,13 +369,6 @@ const defaultTodos: Todo[] = [
   { id: 3, text: "Read book", completed: false, emoji: "📚", target: 30, current: 0, unit: "pages" },
 ];
 
-const demoLeaderboard: LeaderboardUser[] = [
-  { fid: 1, username: "alice", displayName: "Alice ✨", score: 2450, tasksCompleted: 89 },
-  { fid: 2, username: "bob", displayName: "Bob 🚀", score: 2100, tasksCompleted: 76 },
-  { fid: 3, username: "charlie", displayName: "Charlie", score: 1850, tasksCompleted: 65 },
-  { fid: 4, username: "diana", displayName: "Diana 🌟", score: 1600, tasksCompleted: 58 },
-  { fid: 5, username: "eve", displayName: "Eve", score: 1200, tasksCompleted: 42 },
-];
 
 export default function TodoApp({ user }: TodoAppProps) {
   const { checkInMethod, setShowMethodModal } = useSettings();
@@ -441,6 +386,7 @@ export default function TodoApp({ user }: TodoAppProps) {
   const [selectedEmoji, setSelectedEmoji] = useState('✨');
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showThemePicker, setShowThemePicker] = useState(false);
+  const [showCrypto, setShowCrypto] = useState(false);
   const [userScore, setUserScore] = useState(0);
 
   useEffect(() => {
@@ -571,19 +517,6 @@ export default function TodoApp({ user }: TodoAppProps) {
     setTodos(prev => prev.filter(todo => todo.id !== id));
   };
 
-  const getLeaderboardWithUser = () => {
-    const userEntry: LeaderboardUser = {
-      fid: user?.fid || 999999,
-      username: user?.username || 'you',
-      displayName: user?.displayName || 'You',
-      pfpUrl: user?.pfpUrl,
-      score: userScore,
-      tasksCompleted: completedCount,
-    };
-    
-    const combined = [...demoLeaderboard, userEntry];
-    return combined.sort((a, b) => b.score - a.score).slice(0, 10);
-  };
 
   return (
     <div 
@@ -601,12 +534,16 @@ export default function TodoApp({ user }: TodoAppProps) {
 
       <CheckInMethodModal />
       <ThemePickerModal isOpen={showThemePicker} onClose={() => setShowThemePicker(false)} />
+      <CryptoTracker isOpen={showCrypto} onClose={() => setShowCrypto(false)} />
       
       {showLeaderboard && (
         <Leaderboard 
-          users={getLeaderboardWithUser()} 
-          currentUserFid={user?.fid}
-          onClose={() => setShowLeaderboard(false)} 
+          isOpen={showLeaderboard} 
+          currentUser={user}
+          onClose={() => setShowLeaderboard(false)}
+          userScore={userScore}
+          tasksCompleted={completedCount}
+          streak={streak} 
         />
       )}
 
@@ -646,6 +583,14 @@ export default function TodoApp({ user }: TodoAppProps) {
         {/* Action buttons */}
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
+            {/* Crypto button */}
+            <button
+              onClick={() => setShowCrypto(true)}
+              className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all"
+              title="Crypto prices"
+            >
+              <span className="text-lg">📈</span>
+            </button>
             {/* Theme button */}
             <button
               onClick={() => setShowThemePicker(true)}
