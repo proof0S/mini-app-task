@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import sdk from '@farcaster/frame-sdk';
 import TodoApp from '@/components/TodoApp';
 import { SettingsProvider } from '@/contexts/SettingsContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 
 export default function Home() {
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
@@ -48,8 +49,10 @@ export default function Home() {
   }
 
   return (
-    <SettingsProvider>
-      <TodoApp user={user} />
-    </SettingsProvider>
+    <ThemeProvider>
+      <SettingsProvider>
+        <TodoApp user={user} />
+      </SettingsProvider>
+    </ThemeProvider>
   );
 }
