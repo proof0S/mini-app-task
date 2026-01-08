@@ -28,8 +28,8 @@ export default function Leaderboard({
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRank, setUserRank] = useState<number | null>(null);
+  const [timeFilter, setTimeFilter] = useState<'all' | 'week' | 'month'>('all');
 
-  // Leaderboard verilerini çek
   useEffect(() => {
     if (!isOpen) return;
 
@@ -38,7 +38,6 @@ export default function Leaderboard({
       const data = await getLeaderboard(50);
       setEntries(data);
       
-      // Kullanıcının sırasını bul
       if (currentUser?.fid) {
         const rank = data.findIndex(e => e.fid === currentUser.fid) + 1;
         setUserRank(rank > 0 ? rank : null);
@@ -50,7 +49,6 @@ export default function Leaderboard({
     fetchData();
   }, [isOpen, currentUser?.fid]);
 
-  // Kullanıcı skorunu güncelle
   useEffect(() => {
     if (!currentUser?.fid || !isOpen) return;
 
@@ -65,7 +63,6 @@ export default function Leaderboard({
         streak
       );
       
-      // Güncel leaderboard'u çek
       const data = await getLeaderboard(50);
       setEntries(data);
     };
@@ -76,110 +73,126 @@ export default function Leaderboard({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-b from-indigo-900 to-purple-900 rounded-3xl p-5 w-full max-w-[380px] max-h-[80vh] overflow-hidden shadow-2xl border border-white/20 flex flex-col">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🏆</span>
-            <h2 className="text-xl font-bold text-white">Leaderboard</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-xl transition-all"
-          >
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+    <div className="animate-fadeIn">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-black text-white drop-shadow-lg flex items-center gap-2">
+            <span>🏆</span> Leaderboard
+          </h1>
+          <p className="text-white/80 text-sm font-medium">Compete with others</p>
         </div>
+      </div>
 
-        {/* User's rank */}
-        {currentUser?.fid && userRank && (
-          <div className="mb-4 p-3 bg-cyan-500/20 border border-cyan-400/30 rounded-xl">
-            <p className="text-cyan-200 text-sm text-center">
-              Your rank: <span className="font-bold text-white">#{userRank}</span> with <span className="font-bold text-white">{userScore}</span> points
-            </p>
+      {/* User's rank card */}
+      {currentUser?.fid && (
+        <div className="mb-6 p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-2xl backdrop-blur-xl animate-slideUp">
+          <div className="flex items-center gap-4">
+            {currentUser.pfpUrl ? (
+              <img src={currentUser.pfpUrl} alt="" className="w-14 h-14 rounded-full border-2 border-yellow-400" />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-yellow-500/30 flex items-center justify-center border-2 border-yellow-400">
+                <span className="text-2xl">👤</span>
+              </div>
+            )}
+            <div className="flex-1">
+              <p className="text-white font-bold">{currentUser.displayName || 'You'}</p>
+              <p className="text-yellow-200 text-sm">
+                Rank #{userRank || '—'} • {userScore.toLocaleString()} points
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-3xl font-black text-yellow-400">🔥 {streak}</p>
+              <p className="text-yellow-200/70 text-xs">day streak</p>
+            </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Leaderboard list */}
-        <div className="flex-1 overflow-y-auto space-y-2">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            </div>
-          ) : entries.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-white/60">No entries yet. Be the first!</p>
-            </div>
-          ) : (
-            entries.map((entry, index) => (
-              <div
-                key={entry.fid}
-                className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-                  entry.fid === currentUser?.fid 
-                    ? 'bg-cyan-500/30 border border-cyan-400/50' 
-                    : 'bg-white/10'
-                }`}
-              >
-                {/* Rank */}
-                <span className="text-xl font-bold text-white/80 w-8 text-center">
-                  {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
-                </span>
+      {/* Filter tabs */}
+      <div className="flex gap-2 mb-4">
+        {(['all', 'week', 'month'] as const).map(filter => (
+          <button
+            key={filter}
+            onClick={() => setTimeFilter(filter)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all btn-press ${
+              timeFilter === filter
+                ? 'bg-white/20 text-white'
+                : 'bg-white/5 text-white/60 hover:bg-white/10'
+            }`}
+          >
+            {filter === 'all' ? 'All Time' : filter === 'week' ? 'This Week' : 'This Month'}
+          </button>
+        ))}
+      </div>
 
-                {/* Avatar */}
-                {entry.pfp_url ? (
-                  <img 
-                    src={entry.pfp_url} 
-                    alt="" 
-                    className="w-10 h-10 rounded-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '';
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
+      {/* Leaderboard list */}
+      <div className="space-y-2">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          </div>
+        ) : entries.length === 0 ? (
+          <div className="text-center py-12 bg-white/10 rounded-2xl backdrop-blur-xl">
+            <span className="text-5xl mb-4 block">🏆</span>
+            <p className="text-white font-semibold mb-1">No entries yet</p>
+            <p className="text-white/60 text-sm">Be the first to join!</p>
+          </div>
+        ) : (
+          entries.map((entry, index) => (
+            <div
+              key={entry.fid}
+              className={`flex items-center gap-3 p-4 rounded-2xl transition-all animate-slideUp card-hover stagger-${Math.min(index + 1, 5)} ${
+                entry.fid === currentUser?.fid 
+                  ? 'bg-cyan-500/20 border border-cyan-400/30' 
+                  : 'bg-white/10 border border-white/10'
+              }`}
+              style={{ opacity: 0, animationFillMode: 'forwards' }}
+            >
+              {/* Rank */}
+              <div className="w-10 text-center">
+                {index === 0 ? (
+                  <span className="text-3xl">🥇</span>
+                ) : index === 1 ? (
+                  <span className="text-3xl">🥈</span>
+                ) : index === 2 ? (
+                  <span className="text-3xl">🥉</span>
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                    <span className="text-lg">👤</span>
-                  </div>
+                  <span className="text-xl font-bold text-white/60">#{index + 1}</span>
                 )}
+              </div>
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-white font-semibold text-sm truncate">
-                    {entry.display_name || entry.username}
-                    {entry.fid === currentUser?.fid && (
-                      <span className="text-cyan-300 ml-1">(You)</span>
-                    )}
-                  </p>
-                  <div className="flex items-center gap-2 text-white/60 text-xs">
-                    <span>{entry.tasks_completed} tasks</span>
-                    {entry.streak > 0 && (
-                      <span className="flex items-center gap-0.5">
-                        🔥 {entry.streak}
-                      </span>
-                    )}
-                  </div>
+              {/* Avatar */}
+              {entry.pfp_url ? (
+                <img src={entry.pfp_url} alt="" className="w-12 h-12 rounded-full" />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                  <span className="text-xl">👤</span>
                 </div>
+              )}
 
-                {/* Score */}
-                <div className="text-right">
-                  <p className="text-white font-bold">{entry.score.toLocaleString()}</p>
-                  <p className="text-white/60 text-xs">points</p>
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-bold truncate">
+                  {entry.display_name || entry.username}
+                  {entry.fid === currentUser?.fid && (
+                    <span className="text-cyan-300 ml-2 text-sm">(You)</span>
+                  )}
+                </p>
+                <div className="flex items-center gap-3 text-white/60 text-sm">
+                  <span>✅ {entry.tasks_completed}</span>
+                  {entry.streak > 0 && <span>🔥 {entry.streak}</span>}
                 </div>
               </div>
-            ))
-          )}
-        </div>
 
-        {/* Footer */}
-        <div className="mt-4 pt-3 border-t border-white/10">
-          <p className="text-white/40 text-xs text-center">
-            Complete tasks to climb the leaderboard! 🚀
-          </p>
-        </div>
+              {/* Score */}
+              <div className="text-right">
+                <p className="text-white text-xl font-black">{entry.score.toLocaleString()}</p>
+                <p className="text-white/50 text-xs">points</p>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

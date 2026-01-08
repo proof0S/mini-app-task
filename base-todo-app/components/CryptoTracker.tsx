@@ -53,7 +53,6 @@ export default function CryptoTracker({ isOpen, onClose }: CryptoTrackerProps) {
   const [showAddCoin, setShowAddCoin] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Favori coinleri localStorage'dan yükle
   useEffect(() => {
     const saved = localStorage.getItem('crypto_favorites');
     if (saved) {
@@ -61,7 +60,6 @@ export default function CryptoTracker({ isOpen, onClose }: CryptoTrackerProps) {
     }
   }, []);
 
-  // Top 200 coin listesini çek
   useEffect(() => {
     if (!isOpen) return;
 
@@ -81,7 +79,6 @@ export default function CryptoTracker({ isOpen, onClose }: CryptoTrackerProps) {
     fetchAllCoins();
   }, [isOpen]);
 
-  // Favori coinlerin fiyatlarını çek
   useEffect(() => {
     if (!isOpen || favorites.length === 0) return;
 
@@ -133,145 +130,142 @@ export default function CryptoTracker({ isOpen, onClose }: CryptoTrackerProps) {
     return `$${price.toLocaleString('en-US', { maximumFractionDigits: 6 })}`;
   };
 
-  // Arama ve filtreleme - top 200'den
   const filteredCoins = allCoins.filter(
     coin => !favorites.includes(coin.id) && 
     (coin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
      coin.symbol.toLowerCase().includes(searchQuery.toLowerCase()))
-  ).slice(0, 20); // Arama sonuçlarından max 20 göster
+  ).slice(0, 20);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-3xl p-5 w-full max-w-[400px] max-h-[85vh] overflow-hidden shadow-2xl border border-white/10 flex flex-col">
-        
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">📈</span>
-            <h2 className="text-xl font-bold text-white">Crypto Prices</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-xl transition-all"
-          >
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+    <div className="animate-fadeIn">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-black text-white drop-shadow-lg flex items-center gap-2">
+            <span>📈</span> Crypto
+          </h1>
+          <p className="text-white/80 text-sm font-medium">Track your favorite coins</p>
         </div>
+        <div className="px-3 py-1.5 rounded-full bg-green-500/20 border border-green-500/30">
+          <span className="text-green-400 text-xs font-medium">● Live</span>
+        </div>
+      </div>
 
-        <div className="flex-1 overflow-y-auto">
-          {loading && coins.length === 0 ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            </div>
-          ) : error ? (
-            <div className="text-center py-8">
-              <p className="text-red-400 text-sm">{error}</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {coins.map(coin => (
-                <div
-                  key={coin.id}
-                  className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all group"
-                >
-                  <img src={coin.image} alt={coin.name} className="w-10 h-10 rounded-full" />
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-semibold">{coin.symbol.toUpperCase()}</span>
-                      <span className="text-white/50 text-xs truncate">{coin.name}</span>
-                    </div>
-                    <p className="text-white text-lg font-bold">{formatPrice(coin.current_price)}</p>
-                  </div>
-
-                  <div className="flex flex-col items-end gap-1">
-                    <MiniChart 
-                      data={coin.sparkline_in_7d?.price.slice(-24) || []} 
-                      isPositive={coin.price_change_percentage_24h >= 0}
-                    />
-                    <span className={`text-sm font-semibold ${
-                      coin.price_change_percentage_24h >= 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {coin.price_change_percentage_24h >= 0 ? '+' : ''}
-                      {coin.price_change_percentage_24h?.toFixed(2)}%
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={() => removeFavorite(coin.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-500/20 rounded-lg transition-all"
-                  >
-                    <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {!showAddCoin ? (
-            <button
-              onClick={() => setShowAddCoin(true)}
-              className="w-full mt-4 p-3 border-2 border-dashed border-white/20 hover:border-white/40 rounded-xl text-white/60 hover:text-white transition-all flex items-center justify-center gap-2"
+      {/* Coin List */}
+      <div className="space-y-3">
+        {loading && coins.length === 0 ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          </div>
+        ) : error ? (
+          <div className="text-center py-8 bg-white/10 rounded-2xl backdrop-blur-xl">
+            <span className="text-4xl mb-3 block">😕</span>
+            <p className="text-white/60 text-sm">{error}</p>
+          </div>
+        ) : (
+          coins.map((coin, index) => (
+            <div
+              key={coin.id}
+              className={`flex items-center gap-3 p-4 bg-white/10 hover:bg-white/15 rounded-2xl backdrop-blur-xl border border-white/10 transition-all group card-hover animate-slideUp stagger-${Math.min(index + 1, 5)}`}
+              style={{ opacity: 0, animationFillMode: 'forwards' }}
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span>Add Coin (Top 200)</span>
-            </button>
-          ) : (
-            <div className="mt-4 p-3 bg-white/5 rounded-xl">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search from top 200 coins..."
-                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-white/30 mb-3"
-                autoFocus
-              />
+              <img src={coin.image} alt={coin.name} className="w-12 h-12 rounded-full" />
               
-              <div className="space-y-1 max-h-48 overflow-y-auto">
-                {filteredCoins.length > 0 ? (
-                  filteredCoins.map(coin => (
-                    <button
-                      key={coin.id}
-                      onClick={() => addFavorite(coin.id)}
-                      className="w-full flex items-center gap-3 p-2 hover:bg-white/10 rounded-lg transition-all text-left"
-                    >
-                      <span className="text-white font-medium">{coin.symbol.toUpperCase()}</span>
-                      <span className="text-white/50 text-sm">{coin.name}</span>
-                    </button>
-                  ))
-                ) : (
-                  <p className="text-white/40 text-sm text-center py-2">
-                    {searchQuery ? 'No coins found' : 'Loading coins...'}
-                  </p>
-                )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-white font-bold">{coin.symbol.toUpperCase()}</span>
+                  <span className="text-white/50 text-xs truncate">{coin.name}</span>
+                </div>
+                <p className="text-white text-xl font-black">{formatPrice(coin.current_price)}</p>
+              </div>
+
+              <div className="flex flex-col items-end gap-1">
+                <MiniChart 
+                  data={coin.sparkline_in_7d?.price.slice(-24) || []} 
+                  isPositive={coin.price_change_percentage_24h >= 0}
+                />
+                <span className={`text-sm font-bold px-2 py-0.5 rounded-full ${
+                  coin.price_change_percentage_24h >= 0 
+                    ? 'text-green-400 bg-green-500/20' 
+                    : 'text-red-400 bg-red-500/20'
+                }`}>
+                  {coin.price_change_percentage_24h >= 0 ? '↑' : '↓'}
+                  {Math.abs(coin.price_change_percentage_24h)?.toFixed(2)}%
+                </span>
               </div>
 
               <button
-                onClick={() => {
-                  setShowAddCoin(false);
-                  setSearchQuery('');
-                }}
-                className="w-full mt-2 py-2 text-white/60 hover:text-white text-sm transition-all"
+                onClick={() => removeFavorite(coin.id)}
+                className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-500/20 rounded-xl transition-all btn-press"
               >
-                Cancel
+                <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
-          )}
-        </div>
-
-        <div className="mt-4 pt-3 border-t border-white/10">
-          <p className="text-white/40 text-xs text-center">
-            Top 200 coins by market cap • Updates every 30s
-          </p>
-        </div>
+          ))
+        )}
       </div>
+
+      {/* Add Coin */}
+      {!showAddCoin ? (
+        <button
+          onClick={() => setShowAddCoin(true)}
+          className="w-full mt-4 p-4 border-2 border-dashed border-white/30 hover:border-white/50 rounded-2xl text-white/70 hover:text-white transition-all flex items-center justify-center gap-2 btn-press"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          <span className="font-semibold">Add Coin</span>
+        </button>
+      ) : (
+        <div className="mt-4 p-4 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 animate-scaleIn">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search coins..."
+            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 mb-3"
+            autoFocus
+          />
+          
+          <div className="space-y-1 max-h-48 overflow-y-auto">
+            {filteredCoins.length > 0 ? (
+              filteredCoins.map(coin => (
+                <button
+                  key={coin.id}
+                  onClick={() => addFavorite(coin.id)}
+                  className="w-full flex items-center gap-3 p-3 hover:bg-white/10 rounded-xl transition-all text-left btn-press"
+                >
+                  <span className="text-white font-bold">{coin.symbol.toUpperCase()}</span>
+                  <span className="text-white/50 text-sm">{coin.name}</span>
+                </button>
+              ))
+            ) : (
+              <p className="text-white/40 text-sm text-center py-4">
+                {searchQuery ? 'No coins found' : 'Loading...'}
+              </p>
+            )}
+          </div>
+
+          <button
+            onClick={() => {
+              setShowAddCoin(false);
+              setSearchQuery('');
+            }}
+            className="w-full mt-3 py-2 text-white/60 hover:text-white text-sm transition-all"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {/* Footer */}
+      <p className="text-white/40 text-xs text-center mt-6">
+        Data from CoinGecko • Updates every 30s
+      </p>
     </div>
   );
 }

@@ -736,7 +736,7 @@ export default function TodoApp({ user }: TodoAppProps) {
         {/* Settings Tab */}
         {activeTab === 'settings' && (
           <div className="animate-fadeIn">
-            <SettingsPanel isOpen={true} onClose={() => setActiveTab('tasks')} />
+            <SettingsPanel isOpen={true} onClose={() => setActiveTab('tasks')} user={user} userScore={userScore} tasksCompleted={completedCount} streak={streak} />
           </div>
         )}
 
