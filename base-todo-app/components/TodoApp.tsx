@@ -11,6 +11,9 @@ import Leaderboard from './Leaderboard';
 import Onboarding from './Onboarding';
 import Toast, { ToastMessage } from './Toast';
 import EmptyState from './EmptyState';
+import BottomNav from './BottomNav';
+import SettingsPanel from './SettingsPanel';
+import { SkeletonTask, SkeletonProgress } from './Skeleton';
 import { getLeaderboard, updateScore, LeaderboardEntry } from '../lib/supabase';
 
 interface Todo {
@@ -22,7 +25,6 @@ interface Todo {
   current?: number;
   unit?: string;
 }
-
 
 interface TodoAppProps {
   user?: {
@@ -36,63 +38,39 @@ interface TodoAppProps {
 // Emoji bazlı esprili mesajlar
 const funnyMessages: Record<string, string[]> = {
   '💧': [
-    "H2O seni seviyor! Böbrekler teşekkür eder 💧",
-    "Balıklar kıskanıyor şu an 🐟",
-    "Cilt bakımının %90'ı tamam! ✨",
-    "Çöl değil vaha oldun! 🏝️",
+    "H2O seni seviyor! 💧",
+    "Balıklar kıskanıyor 🐟",
+    "Cilt bakımı +100! ✨",
   ],
   '📚': [
-    "Einstein kıskanır bu tempoyu! 🧠",
-    "Beyin kasların çalışıyor! 💪",
-    "Kütüphaneci olsan zengin olurdun 📖",
-    "Netflix: Am I a joke to you? 😅",
+    "Beyin kasları çalışıyor! 🧠",
+    "Einstein kıskanır! 💪",
+    "Netflix üzgün 😅",
   ],
   '🏃': [
-    "Usain Bolt izliyor olabilir... 👀",
-    "Kalorilerin kaçıyor! Yakala! 🔥",
+    "Usain Bolt izliyor 👀",
+    "Kalorilerin kaçıyor! 🔥",
     "Ayakkabılar gurur duyuyor 👟",
-    "Asansör üzgün, merdiven mutlu! 😂",
   ],
   '🧘': [
-    "Namaste! Bir kahve hak ettin ☕",
-    "İç huzur: Yükleniyor... ✅",
-    "Stres seviyesi: 📉📉📉",
-    "Buda seni onaylıyor 🙏",
-  ],
-  '💪': [
-    "Kaslar: Online! 💪",
-    "Ayna bugün mutlu! 😎",
-    "Thor kıskanç bakıyor ⚡",
-    "Protein shake zamanı! 🥤",
-  ],
-  '🍎': [
-    "Doktor uzakta kaldı! 🏥",
-    "Vitamin deposu oldun! 🌈",
-    "Sağlıklı yaşam +100 HP ❤️",
-    "Meyve tabağı seni seviyor 🍇",
-  ],
-  '💤': [
-    "Rüyalar güzel olsun! 🌙",
-    "Uyku borcu: Ödendi ✅",
-    "Yastık seni özlemişti! 🛏️",
-    "8 saat kulübüne hoş geldin! 😴",
+    "Namaste! ☕",
+    "Stres seviyesi: 📉",
+    "İç huzur: ✅",
   ],
   'default': [
-    "Harikasın! Böyle devam! 🌟",
-    "Süpersin! Durma! 🚀",
-    "Efsane hareket! 👑",
-    "Kendini aştın! 💫",
-    "Bu tempo çok iyi! 🔥",
-    "Hedefleri eziyorsun! 💪",
+    "Harikasın! 🌟",
+    "Süpersin! 🚀",
+    "Efsane! 👑",
+    "Devam et! 💫",
   ]
 };
 
 const streakMessages: Record<number, string> = {
   3: "3 gün! Alışkanlık oluşuyor 🌱",
-  7: "1 hafta! Artık bu senin rutinin 🔥",
-  14: "2 hafta! Durdurulamaz oldun 🚀",
-  21: "21 gün! Bilim diyor ki: Bu artık alışkanlık! 🧬",
-  30: "1 ay! Efsane statüsüne ulaştın 👑",
+  7: "1 hafta! Bu senin rutinin 🔥",
+  14: "2 hafta! Durdurulamaz! 🚀",
+  21: "21 gün! Artık alışkanlık! 🧬",
+  30: "1 ay! Efsane oldun 👑",
 };
 
 // Confetti component
@@ -104,7 +82,7 @@ const Confetti = ({ active }: { active: boolean }) => {
     left: Math.random() * 100,
     delay: Math.random() * 0.5,
     duration: 1 + Math.random() * 1,
-    color: ['#00D4FF', '#0099FF', '#6B5BFF', '#00F5D4', '#FFFFFF', '#80EAFF', '#B794F6', '#FF6B6B', '#FFD93D'][Math.floor(Math.random() * 9)],
+    color: ['#00D4FF', '#0099FF', '#6B5BFF', '#00F5D4', '#FFFFFF', '#FF6B6B', '#FFD93D'][Math.floor(Math.random() * 7)],
     size: 6 + Math.random() * 8,
   }));
 
@@ -133,16 +111,10 @@ const Confetti = ({ active }: { active: boolean }) => {
 // Streak badge
 const StreakBadge = ({ streak }: { streak: number }) => {
   if (streak === 0) return null;
-
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 shadow-lg">
-      <span className="text-2xl animate-flame">🔥</span>
-      <div className="flex flex-col leading-tight">
-        <span className="text-[10px] text-white/70 font-semibold tracking-wider">STREAK</span>
-        <span className="text-sm font-bold text-white">
-          {streak} {streak === 1 ? 'day' : 'days'}
-        </span>
-      </div>
+      <span className="text-xl animate-flame">🔥</span>
+      <span className="text-sm font-bold text-white">{streak}</span>
     </div>
   );
 };
@@ -177,7 +149,7 @@ const ProgressRing = ({ percentage, accentColor }: { percentage: number; accentC
 };
 
 // Slider Todo Item
-const SliderTodoItem = ({ todo, onUpdate, onDelete, onComplete, accentColor, playSound, vibrate }: { 
+const SliderTodoItem = ({ todo, onUpdate, onDelete, onComplete, accentColor, playSound, vibrate, index }: { 
   todo: Todo; 
   onUpdate: (id: number, current: number) => void;
   onDelete: (id: number) => void;
@@ -185,6 +157,7 @@ const SliderTodoItem = ({ todo, onUpdate, onDelete, onComplete, accentColor, pla
   accentColor: string;
   playSound: (type: 'slide' | 'complete' | 'click' | 'success') => void;
   vibrate: (pattern: number | number[]) => void;
+  index: number;
 }) => {
   const sliderRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -201,15 +174,12 @@ const SliderTodoItem = ({ todo, onUpdate, onDelete, onComplete, accentColor, pla
     const newValue = Math.round((percent / 100) * target);
     
     if (newValue !== current) {
-      // Ses ve titreşim efekti
       if (newValue !== lastValue.current) {
         playSound('slide');
         vibrate(5);
         lastValue.current = newValue;
       }
-      
       onUpdate(todo.id, newValue);
-      
       if (newValue === target && current !== target) {
         playSound('complete');
         vibrate([50, 30, 50, 30, 100]);
@@ -218,34 +188,13 @@ const SliderTodoItem = ({ todo, onUpdate, onDelete, onComplete, accentColor, pla
     }
   };
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    handleInteraction(e.clientX);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (isDragging) handleInteraction(e.clientX);
-  };
-
-  const handleMouseUp = () => setIsDragging(false);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setIsDragging(true);
-    handleInteraction(e.touches[0].clientX);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (isDragging) handleInteraction(e.touches[0].clientX);
-  };
-
-  const handleTouchEnd = () => setIsDragging(false);
-
   return (
-    <div className={`group relative overflow-hidden rounded-2xl transition-all duration-300 ${
-      todo.completed 
-        ? 'bg-white/30 shadow-lg' 
-        : 'bg-white/15'
-    } border border-white/20 backdrop-blur-xl`}>
+    <div 
+      className={`group relative overflow-hidden rounded-2xl transition-all duration-300 animate-slideUp card-hover ${
+        todo.completed ? 'bg-white/30 shadow-lg animate-glow' : 'bg-white/15'
+      } border border-white/20 backdrop-blur-xl stagger-${Math.min(index + 1, 5)}`}
+      style={{ opacity: 0, animationFillMode: 'forwards' }}
+    >
       <div className="p-4">
         <div className="flex items-center mb-3">
           <span className="text-xl mr-2">{todo.emoji}</span>
@@ -257,7 +206,7 @@ const SliderTodoItem = ({ todo, onUpdate, onDelete, onComplete, accentColor, pla
           </span>
           <button
             onClick={() => onDelete(todo.id)}
-            className="opacity-0 group-hover:opacity-100 p-2 text-white/60 hover:text-red-300 hover:bg-red-500/20 rounded-xl transition-all"
+            className="opacity-0 group-hover:opacity-100 p-2 text-white/60 hover:text-red-300 hover:bg-red-500/20 rounded-xl transition-all btn-press"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -268,13 +217,13 @@ const SliderTodoItem = ({ todo, onUpdate, onDelete, onComplete, accentColor, pla
         <div
           ref={sliderRef}
           className="relative h-12 bg-white/20 rounded-full cursor-pointer"
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
+          onMouseDown={(e) => { setIsDragging(true); handleInteraction(e.clientX); }}
+          onMouseMove={(e) => isDragging && handleInteraction(e.clientX)}
+          onMouseUp={() => setIsDragging(false)}
+          onMouseLeave={() => setIsDragging(false)}
+          onTouchStart={(e) => { setIsDragging(true); handleInteraction(e.touches[0].clientX); }}
+          onTouchMove={(e) => isDragging && handleInteraction(e.touches[0].clientX)}
+          onTouchEnd={() => setIsDragging(false)}
         >
           <div 
             className="absolute inset-y-0 left-0 rounded-full transition-all duration-100"
@@ -285,7 +234,6 @@ const SliderTodoItem = ({ todo, onUpdate, onDelete, onComplete, accentColor, pla
                 : `linear-gradient(90deg, ${accentColor}, ${accentColor}dd)`
             }}
           />
-          
           <div 
             className={`absolute top-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center transition-transform ${
               isDragging ? 'scale-125 shadow-xl' : 'scale-100'
@@ -301,13 +249,14 @@ const SliderTodoItem = ({ todo, onUpdate, onDelete, onComplete, accentColor, pla
 };
 
 // Tap Todo Item
-const TapTodoItem = ({ todo, onToggle, onDelete, accentColor, playSound, vibrate }: { 
+const TapTodoItem = ({ todo, onToggle, onDelete, accentColor, playSound, vibrate, index }: { 
   todo: Todo; 
   onToggle: (id: number) => void;
   onDelete: (id: number) => void;
   accentColor: string;
   playSound: (type: 'slide' | 'complete' | 'click' | 'success') => void;
   vibrate: (pattern: number | number[]) => void;
+  index: number;
 }) => {
   const handleToggle = () => {
     playSound('click');
@@ -322,15 +271,16 @@ const TapTodoItem = ({ todo, onToggle, onDelete, accentColor, playSound, vibrate
   };
 
   return (
-    <div className={`group relative overflow-hidden rounded-2xl transition-all duration-300 ${
-      todo.completed 
-        ? 'bg-white/30 shadow-lg' 
-        : 'bg-white/15 hover:bg-white/25'
-    } border border-white/20 backdrop-blur-xl`}>
+    <div 
+      className={`group relative overflow-hidden rounded-2xl transition-all duration-300 animate-slideUp card-hover ${
+        todo.completed ? 'bg-white/30 shadow-lg' : 'bg-white/15 hover:bg-white/25'
+      } border border-white/20 backdrop-blur-xl stagger-${Math.min(index + 1, 5)}`}
+      style={{ opacity: 0, animationFillMode: 'forwards' }}
+    >
       <div className="flex items-center p-4">
         <button
           onClick={handleToggle}
-          className={`relative w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+          className={`relative w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-300 btn-press ${
             todo.completed 
               ? 'border-transparent scale-110 shadow-lg' 
               : 'border-white/50 hover:border-white hover:scale-105 bg-white/10'
@@ -353,7 +303,7 @@ const TapTodoItem = ({ todo, onToggle, onDelete, accentColor, playSound, vibrate
 
         <button
           onClick={() => onDelete(todo.id)}
-          className="opacity-0 group-hover:opacity-100 p-2 text-white/60 hover:text-red-300 hover:bg-red-500/20 rounded-xl transition-all"
+          className="opacity-0 group-hover:opacity-100 p-2 text-white/60 hover:text-red-300 hover:bg-red-500/20 rounded-xl transition-all btn-press"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -372,7 +322,6 @@ const defaultTodos: Todo[] = [
   { id: 3, text: "Read book", completed: false, emoji: "📚", target: 30, current: 0, unit: "pages" },
 ];
 
-
 export default function TodoApp({ user }: TodoAppProps) {
   const { checkInMethod, setShowMethodModal } = useSettings();
   const { currentTheme, customBackground } = useTheme();
@@ -387,20 +336,21 @@ export default function TodoApp({ user }: TodoAppProps) {
   const [streak, setStreak] = useState(1);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedEmoji, setSelectedEmoji] = useState('✨');
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [showThemePicker, setShowThemePicker] = useState(false);
-  const [showCrypto, setShowCrypto] = useState(false);
+  const [userScore, setUserScore] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // UI States
+  const [activeTab, setActiveTab] = useState<'tasks' | 'crypto' | 'leaderboard' | 'settings'>('tasks');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const [userScore, setUserScore] = useState(0);
 
   useEffect(() => {
-    const savedTodos = localStorage.getItem('dailyTasks_todos_v2');
     const savedOnboarding = localStorage.getItem('dailyTasks_onboarded');
     if (!savedOnboarding) {
       setShowOnboarding(true);
     }
 
+    const savedTodos = localStorage.getItem('dailyTasks_todos_v2');
     const savedStreak = localStorage.getItem('dailyTasks_streak');
     const savedScore = localStorage.getItem('dailyTasks_score');
     const lastVisit = localStorage.getItem('dailyTasks_lastVisit');
@@ -440,6 +390,9 @@ export default function TodoApp({ user }: TodoAppProps) {
         }
       }
     }
+    
+    // Simulate loading
+    setTimeout(() => setIsLoading(false), 800);
   }, []);
 
   useEffect(() => {
@@ -449,6 +402,21 @@ export default function TodoApp({ user }: TodoAppProps) {
   useEffect(() => {
     localStorage.setItem('dailyTasks_score', userScore.toString());
   }, [userScore]);
+
+  const addToast = (type: ToastMessage['type'], message: string) => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, type, message }]);
+  };
+
+  const removeToast = (id: number) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+    localStorage.setItem('dailyTasks_onboarded', 'true');
+    addToast('success', 'Welcome! Lets build great habits! 🎉');
+  };
 
   const calculateTotalProgress = () => {
     if (todos.length === 0) return 0;
@@ -466,23 +434,6 @@ export default function TodoApp({ user }: TodoAppProps) {
   const getFunnyMessage = (emoji: string) => {
     const messages = funnyMessages[emoji] || funnyMessages['default'];
     return messages[Math.floor(Math.random() * messages.length)];
-  };
-
-  const addToast = (type: ToastMessage['type'], message: string) => {
-    const id = Date.now();
-    setToasts(prev => [...prev, { id, type, message }]);
-  };
-
-  const removeToast = (id: number) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
-  };
-
-  const handleOnboardingComplete = () => {
-    // Farcaster'dan kullanıcı bilgisi gelecek
-    setShowOnboarding(false);
-    localStorage.setItem('dailyTasks_onboarded', 'true');
-    // İsim Farcaster'dan geliyor
-    addToast('success', 'Welcome! Lets build great habits! 🎉');
   };
 
   const triggerCelebration = (emoji: string = '✨') => {
@@ -537,270 +488,262 @@ export default function TodoApp({ user }: TodoAppProps) {
       setNewUnit('');
       setShowAddForm(false);
       setSelectedEmoji('✨');
+      addToast('success', 'Task added! 🎯');
     }
   };
 
   const deleteTodo = (id: number) => {
     setTodos(prev => prev.filter(todo => todo.id !== id));
+    addToast('info', 'Task removed');
   };
 
+  const handleTabChange = (tab: 'tasks' | 'crypto' | 'leaderboard' | 'settings') => {
+    playSound('click');
+    setActiveTab(tab);
+  };
 
   return (
     <div 
-      className="min-h-screen relative overflow-hidden"
+      className="min-h-screen relative overflow-hidden pb-24"
       style={{
         background: customBackground 
           ? `url(${customBackground}) center/cover fixed`
           : currentTheme.gradient
       }}
     >
-      {/* Overlay for custom background */}
       {customBackground && (
         <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
       )}
 
-      {showOnboarding && (
-        <Onboarding onComplete={handleOnboardingComplete} />
-      )}
-
-      <Toast toasts={toasts} onRemove={removeToast} />
-
-      <CheckInMethodModal />
-      <ThemePickerModal isOpen={showThemePicker} onClose={() => setShowThemePicker(false)} />
-      <CryptoTracker isOpen={showCrypto} onClose={() => setShowCrypto(false)} />
+      {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
       
-      {showLeaderboard && (
-        <Leaderboard 
-          isOpen={showLeaderboard} 
-          currentUser={user}
-          onClose={() => setShowLeaderboard(false)}
-          userScore={userScore}
-          tasksCompleted={completedCount}
-          streak={streak} 
-        />
-      )}
-
-      {/* Animated orbs */}
-      {!customBackground && (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 -left-20 w-80 h-80 bg-white/10 rounded-full blur-3xl animate-float" />
-          <div className="absolute bottom-20 -right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-float-delayed" />
-          <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-white/5 rounded-full blur-3xl animate-float-slow" />
-        </div>
-      )}
-
+      <Toast toasts={toasts} onRemove={removeToast} />
       <Confetti active={showConfetti} />
+      <CheckInMethodModal />
 
       {celebrationMessage && (
-        <div className="fixed top-1/3 left-1/2 -translate-x-1/2 z-50 animate-bounce-in">
+        <div className="fixed top-1/3 left-1/2 -translate-x-1/2 z-50 animate-scaleIn">
           <div className="px-6 py-4 bg-white/30 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 max-w-xs text-center">
             <span className="text-xl font-bold text-white drop-shadow-lg">{celebrationMessage}</span>
           </div>
         </div>
       )}
 
+      {!customBackground && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 -left-20 w-80 h-80 bg-white/10 rounded-full blur-3xl animate-float" />
+          <div className="absolute bottom-20 -right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-float-delayed" />
+        </div>
+      )}
+
       <div className="relative z-10 max-w-md mx-auto px-4 py-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-black text-white drop-shadow-lg">Daily Tasks</h1>
-            <p className="text-white/80 text-sm font-medium">
-              {user?.displayName ? `Hey ${user.displayName}! ✨` : 'Build better habits ✨'}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <StreakBadge streak={streak} />
-          </div>
-        </div>
+        
+        {/* Tasks Tab */}
+        {activeTab === 'tasks' && (
+          <div className="animate-fadeIn">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-3xl font-black text-white drop-shadow-lg">Daily Tasks</h1>
+                <p className="text-white/80 text-sm font-medium">
+                  {user?.displayName ? `Hey ${user.displayName}! ✨` : 'Build better habits ✨'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <StreakBadge streak={streak} />
+                <div className="px-3 py-1.5 rounded-full bg-yellow-400/20 border border-yellow-400/30">
+                  <span className="text-white font-bold text-sm">🏆 {userScore}</span>
+                </div>
+              </div>
+            </div>
 
-        {/* Action buttons */}
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {/* Crypto button */}
-            <button
-              onClick={() => setShowCrypto(true)}
-              className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all"
-              title="Crypto prices"
-            >
-              <span className="text-lg">📈</span>
-            </button>
-            {/* Theme button */}
-            <button
-              onClick={() => setShowThemePicker(true)}
-              className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all"
-              title="Customize theme"
-            >
-              <span className="text-lg">🎨</span>
-            </button>
-            {/* Settings button */}
-            <button
-              onClick={() => setShowMethodModal(true)}
-              className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all"
-              title="Check-in method"
-            >
-              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </button>
-          </div>
-          {/* Leaderboard button */}
-          <button
-            onClick={() => setShowLeaderboard(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-yellow-400/20 hover:bg-yellow-400/30 transition-all border border-yellow-400/30"
-          >
-            <span>🏆</span>
-            <span className="text-white font-bold text-sm">{userScore}</span>
-          </button>
-        </div>
-
-        {/* Mode indicator */}
-        <div className="mb-4 flex items-center justify-center">
-          <div className="px-3 py-1 rounded-full bg-white/20 text-white/80 text-xs font-medium">
-            {checkInMethod === 'swipe' ? '👆 Slide to track progress' : '👆 Tap to complete'}
-          </div>
-        </div>
-
-        {/* Progress section */}
-        <div className="flex items-center justify-between mb-6 p-5 rounded-3xl bg-white/20 backdrop-blur-xl border border-white/30 shadow-xl">
-          <ProgressRing percentage={totalProgress} accentColor={currentTheme.accentColor} />
-          <div className="text-right">
-            <p className="text-white/70 text-sm font-medium">Today's progress</p>
-            <p className="text-white text-4xl font-black drop-shadow-lg">
-              {Math.round(totalProgress)}%
-            </p>
-            <p className="text-white/60 text-xs mt-1">
-              {completedCount}/{todos.length} tasks done
-            </p>
-            {completedCount === todos.length && todos.length > 0 && (
-              <p className="text-white text-sm font-semibold mt-1 animate-pulse">🎉 All done!</p>
-            )}
-          </div>
-        </div>
-
-        {/* Todo list */}
-        <div className="space-y-3 mb-6">
-          {todos.map((todo) => (
-            checkInMethod === 'swipe' ? (
-              <SliderTodoItem
-                key={todo.id}
-                todo={todo}
-                onUpdate={updateTodoProgress}
-                onDelete={deleteTodo}
-                onComplete={() => triggerCelebration(todo.emoji)}
-                accentColor={currentTheme.accentColor}
-                playSound={playSound}
-                vibrate={vibrate}
-              />
+            {/* Progress section */}
+            {isLoading ? (
+              <SkeletonProgress />
             ) : (
-              <TapTodoItem
-                key={todo.id}
-                todo={todo}
-                onToggle={toggleTodo}
-                onDelete={deleteTodo}
-                accentColor={currentTheme.accentColor}
-                playSound={playSound}
-                vibrate={vibrate}
-              />
-            )
-          ))}
-        </div>
-
-        {/* Add todo */}
-        {!showAddForm ? (
-          <button
-            onClick={() => {
-              playSound('click');
-              setShowAddForm(true);
-            }}
-            className="w-full p-4 rounded-2xl border-2 border-dashed border-white/40 hover:border-white/70 hover:bg-white/10 transition-all duration-300 group"
-          >
-            <div className="flex items-center justify-center gap-2 text-white/70 group-hover:text-white font-semibold">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span>Add new task</span>
-            </div>
-          </button>
-        ) : (
-          <div className="p-4 rounded-3xl bg-white/20 backdrop-blur-xl border border-white/30 shadow-xl">
-            <div className="flex flex-wrap gap-2 mb-4">
-              {emojis.map(emoji => (
-                <button
-                  key={emoji}
-                  onClick={() => {
-                    playSound('click');
-                    setSelectedEmoji(emoji);
-                  }}
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${
-                    selectedEmoji === emoji 
-                      ? 'bg-white/40 scale-110 ring-2 ring-white shadow-lg' 
-                      : 'bg-white/10 hover:bg-white/20'
-                  }`}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-
-            <input
-              type="text"
-              value={newTodo}
-              onChange={(e) => setNewTodo(e.target.value)}
-              placeholder="Task name (e.g., Read book)"
-              className="w-full px-4 py-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 mb-3 font-medium"
-              autoFocus
-            />
-
-            {checkInMethod === 'swipe' && (
-              <div className="flex flex-col sm:flex-row gap-2 mb-3">
-                <input
-                  type="number"
-                  value={newTarget}
-                  onChange={(e) => setNewTarget(e.target.value)}
-                  placeholder="Target (e.g., 30)"
-                  className="w-full sm:flex-1 min-w-0 px-4 py-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 font-medium"
-                />
-                <input
-                  type="text"
-                  value={newUnit}
-                  onChange={(e) => setNewUnit(e.target.value)}
-                  placeholder="Unit (e.g., pages)"
-                  className="w-full sm:flex-1 min-w-0 px-4 py-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 font-medium"
-                />
+              <div className="flex items-center justify-between mb-6 p-5 rounded-3xl bg-white/20 backdrop-blur-xl border border-white/30 shadow-xl animate-slideUp">
+                <ProgressRing percentage={totalProgress} accentColor={currentTheme.accentColor} />
+                <div className="text-right">
+                  <p className="text-white/70 text-sm font-medium">Today's progress</p>
+                  <p className="text-white text-4xl font-black drop-shadow-lg">
+                    {Math.round(totalProgress)}%
+                  </p>
+                  <p className="text-white/60 text-xs mt-1">
+                    {completedCount}/{todos.length} tasks done
+                  </p>
+                </div>
               </div>
             )}
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowAddForm(false)}
-                className="flex-1 py-3 rounded-xl bg-white/10 text-white/80 hover:bg-white/20 transition-all font-semibold border border-white/20"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={addTodo}
-                className="flex-1 py-3 rounded-xl bg-white/40 text-white font-bold hover:bg-white/50 transition-all shadow-lg border border-white/50"
-              >
-                Add Task ✨
-              </button>
+            {/* Mode indicator */}
+            <div className="mb-4 flex items-center justify-center">
+              <div className="px-3 py-1 rounded-full bg-white/20 text-white/80 text-xs font-medium">
+                {checkInMethod === 'swipe' ? '👆 Slide to track' : '👆 Tap to complete'}
+              </div>
             </div>
+
+            {/* Todo list */}
+            <div className="space-y-3 mb-6">
+              {isLoading ? (
+                <>
+                  <SkeletonTask />
+                  <SkeletonTask />
+                  <SkeletonTask />
+                </>
+              ) : todos.length === 0 ? (
+                <EmptyState
+                  icon="📝"
+                  title="No tasks yet"
+                  description="Add your first task and start building great habits!"
+                  actionLabel="Add Task"
+                  onAction={() => setShowAddForm(true)}
+                />
+              ) : (
+                todos.map((todo, index) => (
+                  checkInMethod === 'swipe' ? (
+                    <SliderTodoItem
+                      key={todo.id}
+                      todo={todo}
+                      onUpdate={updateTodoProgress}
+                      onDelete={deleteTodo}
+                      onComplete={() => triggerCelebration(todo.emoji)}
+                      accentColor={currentTheme.accentColor}
+                      playSound={playSound}
+                      vibrate={vibrate}
+                      index={index}
+                    />
+                  ) : (
+                    <TapTodoItem
+                      key={todo.id}
+                      todo={todo}
+                      onToggle={toggleTodo}
+                      onDelete={deleteTodo}
+                      accentColor={currentTheme.accentColor}
+                      playSound={playSound}
+                      vibrate={vibrate}
+                      index={index}
+                    />
+                  )
+                ))
+              )}
+            </div>
+
+            {/* Add todo */}
+            {!showAddForm ? (
+              <button
+                onClick={() => {
+                  playSound('click');
+                  setShowAddForm(true);
+                }}
+                className="w-full p-4 rounded-2xl border-2 border-dashed border-white/40 hover:border-white/70 hover:bg-white/10 transition-all duration-300 group btn-press"
+              >
+                <div className="flex items-center justify-center gap-2 text-white/70 group-hover:text-white font-semibold">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span>Add new task</span>
+                </div>
+              </button>
+            ) : (
+              <div className="p-4 rounded-3xl bg-white/20 backdrop-blur-xl border border-white/30 shadow-xl animate-scaleIn">
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {emojis.map(emoji => (
+                    <button
+                      key={emoji}
+                      onClick={() => {
+                        playSound('click');
+                        setSelectedEmoji(emoji);
+                      }}
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all btn-press ${
+                        selectedEmoji === emoji 
+                          ? 'bg-white/40 scale-110 ring-2 ring-white shadow-lg' 
+                          : 'bg-white/10 hover:bg-white/20'
+                      }`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type="text"
+                  value={newTodo}
+                  onChange={(e) => setNewTodo(e.target.value)}
+                  placeholder="Task name"
+                  className="w-full px-4 py-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 mb-3 font-medium"
+                  autoFocus
+                />
+
+                {checkInMethod === 'swipe' && (
+                  <div className="flex gap-2 mb-3">
+                    <input
+                      type="number"
+                      value={newTarget}
+                      onChange={(e) => setNewTarget(e.target.value)}
+                      placeholder="Target"
+                      className="flex-1 px-4 py-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 font-medium"
+                    />
+                    <input
+                      type="text"
+                      value={newUnit}
+                      onChange={(e) => setNewUnit(e.target.value)}
+                      placeholder="Unit"
+                      className="flex-1 px-4 py-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 font-medium"
+                    />
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowAddForm(false)}
+                    className="flex-1 py-3 rounded-xl bg-white/10 text-white/80 hover:bg-white/20 transition-all font-semibold btn-press"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={addTodo}
+                    className="flex-1 py-3 rounded-xl bg-white/40 text-white font-bold hover:bg-white/50 transition-all shadow-lg btn-press"
+                  >
+                    Add ✨
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Branding */}
-        <div className="mt-8 flex items-center justify-center gap-2 text-white/50 text-sm font-medium">
-          <span>Built on</span>
-          <div className="flex items-center gap-1.5 bg-white/20 px-2 py-1 rounded-lg">
-            <div className="w-4 h-4 rounded bg-white/80 flex items-center justify-center">
-              <svg viewBox="0 0 111 111" fill="none" className="w-2.5 h-2.5">
-                <path d="M54.921 110.034C85.359 110.034 110.034 85.402 110.034 55.017C110.034 24.6319 85.359 0 54.921 0C26.0432 0 2.35281 22.1714 0 50.3923H72.8467V59.6416H0C2.35281 87.8625 26.0432 110.034 54.921 110.034Z" fill="#0066CC"/>
-              </svg>
-            </div>
-            <span className="text-white font-bold">Base</span>
+        {/* Crypto Tab */}
+        {activeTab === 'crypto' && (
+          <div className="animate-fadeIn">
+            <CryptoTracker isOpen={true} onClose={() => setActiveTab('tasks')} />
           </div>
-        </div>
+        )}
+
+        {/* Leaderboard Tab */}
+        {activeTab === 'leaderboard' && (
+          <div className="animate-fadeIn">
+            <Leaderboard 
+              isOpen={true} 
+              onClose={() => setActiveTab('tasks')}
+              currentUser={user}
+              userScore={userScore}
+              tasksCompleted={completedCount}
+              streak={streak}
+            />
+          </div>
+        )}
+
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <div className="animate-fadeIn">
+            <SettingsPanel isOpen={true} onClose={() => setActiveTab('tasks')} />
+          </div>
+        )}
+
       </div>
+
+      {/* Bottom Navigation */}
+      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
     </div>
   );
 }
