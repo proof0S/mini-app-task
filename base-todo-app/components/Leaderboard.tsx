@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getLeaderboard, updateScore, LeaderboardEntry } from '../lib/supabase';
+import Achievements from './Achievements';
 
 interface LeaderboardProps {
   isOpen: boolean;
@@ -193,6 +194,11 @@ export default function Leaderboard({
             </div>
           ))
         )}
+
+      {/* Achievements */}
+      <div className="mt-6">
+        <Achievements userScore={userScore} tasksCompleted={tasksCompleted} streak={streak} />
+      </div>
       </div>
     </div>
   );

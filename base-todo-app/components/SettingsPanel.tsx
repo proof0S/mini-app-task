@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
+import Achievements from './Achievements';
 import { useTheme, themes } from '../contexts/ThemeContext';
 
 interface SettingsPanelProps {
@@ -96,6 +97,7 @@ export default function SettingsPanel({
           </div>
         </div>
       </div>
+
 
       {/* Check-in Method */}
       <div className="mb-6 animate-slideUp stagger-1" style={{ opacity: 0, animationFillMode: 'forwards' }}>

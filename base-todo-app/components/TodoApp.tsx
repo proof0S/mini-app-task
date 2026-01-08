@@ -14,6 +14,8 @@ import EmptyState from './EmptyState';
 import BottomNav from './BottomNav';
 import SettingsPanel from './SettingsPanel';
 import { SkeletonTask, SkeletonProgress } from './Skeleton';
+import WeeklyStats from './WeeklyStats';
+import Achievements from './Achievements';
 import { getLeaderboard, updateScore, LeaderboardEntry } from '../lib/supabase';
 
 interface Todo {
@@ -574,6 +576,12 @@ export default function TodoApp({ user }: TodoAppProps) {
                 </div>
               </div>
             )}
+
+            {/* Weekly Stats & Achievements */}
+            <div className="mb-6">
+              <WeeklyStats todos={todos} />
+              
+            </div>
 
             {/* Mode indicator */}
             <div className="mb-4 flex items-center justify-center">
