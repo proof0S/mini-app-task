@@ -8,6 +8,9 @@ import CheckInMethodModal from './CheckInMethodModal';
 import ThemePickerModal from './ThemePickerModal';
 import CryptoTracker from './CryptoTracker';
 import Leaderboard from './Leaderboard';
+import Onboarding from './Onboarding';
+import Toast, { ToastMessage } from './Toast';
+import EmptyState from './EmptyState';
 import { getLeaderboard, updateScore, LeaderboardEntry } from '../lib/supabase';
 
 interface Todo {
@@ -387,10 +390,17 @@ export default function TodoApp({ user }: TodoAppProps) {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [showCrypto, setShowCrypto] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [userScore, setUserScore] = useState(0);
 
   useEffect(() => {
     const savedTodos = localStorage.getItem('dailyTasks_todos_v2');
+    const savedOnboarding = localStorage.getItem('dailyTasks_onboarded');
+    if (!savedOnboarding) {
+      setShowOnboarding(true);
+    }
+
     const savedStreak = localStorage.getItem('dailyTasks_streak');
     const savedScore = localStorage.getItem('dailyTasks_score');
     const lastVisit = localStorage.getItem('dailyTasks_lastVisit');
@@ -456,6 +466,23 @@ export default function TodoApp({ user }: TodoAppProps) {
   const getFunnyMessage = (emoji: string) => {
     const messages = funnyMessages[emoji] || funnyMessages['default'];
     return messages[Math.floor(Math.random() * messages.length)];
+  };
+
+  const addToast = (type: ToastMessage['type'], message: string) => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, type, message }]);
+  };
+
+  const removeToast = (id: number) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
+  const handleOnboardingComplete = () => {
+    // Farcaster'dan kullanıcı bilgisi gelecek
+    setShowOnboarding(false);
+    localStorage.setItem('dailyTasks_onboarded', 'true');
+    // İsim Farcaster'dan geliyor
+    addToast('success', 'Welcome! Lets build great habits! 🎉');
   };
 
   const triggerCelebration = (emoji: string = '✨') => {
@@ -531,6 +558,12 @@ export default function TodoApp({ user }: TodoAppProps) {
       {customBackground && (
         <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
       )}
+
+      {showOnboarding && (
+        <Onboarding onComplete={handleOnboardingComplete} />
+      )}
+
+      <Toast toasts={toasts} onRemove={removeToast} />
 
       <CheckInMethodModal />
       <ThemePickerModal isOpen={showThemePicker} onClose={() => setShowThemePicker(false)} />
