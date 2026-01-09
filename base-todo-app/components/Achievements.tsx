@@ -22,98 +22,28 @@ interface AchievementsProps {
   userScore: number;
   tasksCompleted: number;
   streak: number;
+  onShare?: (data: { type: string; title: string; description: string; emoji: string; value?: number }) => void;
 }
 
 const achievementsList: Omit<Achievement, 'unlocked'>[] = [
-  {
-    id: 'first_task',
-    icon: '🎯',
-    title: 'First Step',
-    description: 'Complete your first task',
-    condition: (stats) => stats.totalTasks >= 1,
-  },
-  {
-    id: 'ten_tasks',
-    icon: '⭐',
-    title: 'Getting Started',
-    description: 'Complete 10 tasks',
-    condition: (stats) => stats.totalTasks >= 10,
-  },
-  {
-    id: 'fifty_tasks',
-    icon: '💪',
-    title: 'Habit Builder',
-    description: 'Complete 50 tasks',
-    condition: (stats) => stats.totalTasks >= 50,
-  },
-  {
-    id: 'hundred_tasks',
-    icon: '🏆',
-    title: 'Centurion',
-    description: 'Complete 100 tasks',
-    condition: (stats) => stats.totalTasks >= 100,
-  },
-  {
-    id: 'streak_3',
-    icon: '🔥',
-    title: 'On Fire',
-    description: '3 day streak',
-    condition: (stats) => stats.streak >= 3,
-  },
-  {
-    id: 'streak_7',
-    icon: '🌟',
-    title: 'Week Warrior',
-    description: '7 day streak',
-    condition: (stats) => stats.streak >= 7,
-  },
-  {
-    id: 'streak_14',
-    icon: '💎',
-    title: 'Unstoppable',
-    description: '14 day streak',
-    condition: (stats) => stats.streak >= 14,
-  },
-  {
-    id: 'streak_30',
-    icon: '👑',
-    title: 'Legend',
-    description: '30 day streak',
-    condition: (stats) => stats.streak >= 30,
-  },
-  {
-    id: 'score_100',
-    icon: '💯',
-    title: 'Point Collector',
-    description: 'Earn 100 points',
-    condition: (stats) => stats.totalScore >= 100,
-  },
-  {
-    id: 'score_500',
-    icon: '🚀',
-    title: 'Rising Star',
-    description: 'Earn 500 points',
-    condition: (stats) => stats.totalScore >= 500,
-  },
-  {
-    id: 'score_1000',
-    icon: '🌙',
-    title: 'Moon Walker',
-    description: 'Earn 1,000 points',
-    condition: (stats) => stats.totalScore >= 1000,
-  },
-  {
-    id: 'score_5000',
-    icon: '🌟',
-    title: 'Superstar',
-    description: 'Earn 5,000 points',
-    condition: (stats) => stats.totalScore >= 5000,
-  },
+  { id: 'first_task', icon: '🎯', title: 'First Step', description: 'Complete your first task', condition: (stats) => stats.totalTasks >= 1 },
+  { id: 'ten_tasks', icon: '⭐', title: 'Getting Started', description: 'Complete 10 tasks', condition: (stats) => stats.totalTasks >= 10 },
+  { id: 'fifty_tasks', icon: '💪', title: 'Habit Builder', description: 'Complete 50 tasks', condition: (stats) => stats.totalTasks >= 50 },
+  { id: 'hundred_tasks', icon: '🏆', title: 'Centurion', description: 'Complete 100 tasks', condition: (stats) => stats.totalTasks >= 100 },
+  { id: 'streak_3', icon: '🔥', title: 'On Fire', description: '3 day streak', condition: (stats) => stats.streak >= 3 },
+  { id: 'streak_7', icon: '🌟', title: 'Week Warrior', description: '7 day streak', condition: (stats) => stats.streak >= 7 },
+  { id: 'streak_14', icon: '💎', title: 'Unstoppable', description: '14 day streak', condition: (stats) => stats.streak >= 14 },
+  { id: 'streak_30', icon: '👑', title: 'Legend', description: '30 day streak', condition: (stats) => stats.streak >= 30 },
+  { id: 'score_100', icon: '💯', title: 'Point Collector', description: 'Earn 100 points', condition: (stats) => stats.totalScore >= 100 },
+  { id: 'score_500', icon: '🚀', title: 'Rising Star', description: 'Earn 500 points', condition: (stats) => stats.totalScore >= 500 },
+  { id: 'score_1000', icon: '🌙', title: 'Moon Walker', description: 'Earn 1,000 points', condition: (stats) => stats.totalScore >= 1000 },
+  { id: 'score_5000', icon: '🌟', title: 'Superstar', description: 'Earn 5,000 points', condition: (stats) => stats.totalScore >= 5000 },
 ];
 
-export default function Achievements({ userScore, tasksCompleted, streak }: AchievementsProps) {
+export default function Achievements({ userScore, tasksCompleted, streak, onShare }: AchievementsProps) {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [showAll, setShowAll] = useState(false);
+  const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
 
   useEffect(() => {
     const stats: UserStats = {
@@ -134,26 +64,36 @@ export default function Achievements({ userScore, tasksCompleted, streak }: Achi
   const unlockedCount = achievements.filter(a => a.unlocked).length;
   const displayAchievements = showAll ? achievements : achievements.slice(0, 6);
 
+  const handleShare = (achievement: Achievement) => {
+    if (onShare && achievement.unlocked) {
+      onShare({
+        type: 'achievement',
+        title: `🏅 ${achievement.title}`,
+        description: `I just unlocked "${achievement.title}" - ${achievement.description}!`,
+        emoji: achievement.icon,
+      });
+    }
+  };
+
   return (
     <div className="p-4 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 animate-slideUp">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-white font-bold flex items-center gap-2">
           <span>🏅</span> Achievements
         </h3>
-        <span className="text-white/60 text-sm">
-          {unlockedCount}/{achievements.length}
-        </span>
+        <span className="text-white/60 text-sm">{unlockedCount}/{achievements.length}</span>
       </div>
 
-      {/* Achievement grid */}
       <div className="grid grid-cols-3 gap-2 mb-3">
         {displayAchievements.map((achievement) => (
-          <div
+          <button
             key={achievement.id}
+            onClick={() => achievement.unlocked && setSelectedAchievement(achievement)}
+            disabled={!achievement.unlocked}
             className={`p-3 rounded-xl text-center transition-all ${
               achievement.unlocked
-                ? 'bg-white/20 border border-white/30'
-                : 'bg-white/5 border border-white/10 opacity-50'
+                ? 'bg-white/20 border border-white/30 hover:bg-white/30 cursor-pointer'
+                : 'bg-white/5 border border-white/10 opacity-50 cursor-not-allowed'
             }`}
           >
             <span className={`text-2xl block mb-1 ${achievement.unlocked ? '' : 'grayscale'}`}>
@@ -163,11 +103,10 @@ export default function Achievements({ userScore, tasksCompleted, streak }: Achi
             {achievement.unlocked && (
               <span className="text-green-400 text-[10px]">✓ Unlocked</span>
             )}
-          </div>
+          </button>
         ))}
       </div>
 
-      {/* Show more/less */}
       {achievements.length > 6 && (
         <button
           onClick={() => setShowAll(!showAll)}
@@ -177,7 +116,6 @@ export default function Achievements({ userScore, tasksCompleted, streak }: Achi
         </button>
       )}
 
-      {/* Progress bar */}
       <div className="mt-3 pt-3 border-t border-white/10">
         <div className="flex items-center justify-between mb-1">
           <span className="text-white/60 text-xs">Progress</span>
@@ -190,6 +128,39 @@ export default function Achievements({ userScore, tasksCompleted, streak }: Achi
           />
         </div>
       </div>
+
+      {/* Achievement Detail Modal */}
+      {selectedAchievement && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn" onClick={() => setSelectedAchievement(null)}>
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-6 w-full max-w-xs shadow-2xl border border-white/20 animate-scaleIn" onClick={e => e.stopPropagation()}>
+            <div className="text-center mb-4">
+              <span className="text-6xl block mb-3">{selectedAchievement.icon}</span>
+              <h3 className="text-white font-bold text-xl">{selectedAchievement.title}</h3>
+              <p className="text-white/60 text-sm mt-1">{selectedAchievement.description}</p>
+            </div>
+            
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSelectedAchievement(null)}
+                className="flex-1 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-medium transition-all btn-press"
+              >
+                Close
+              </button>
+              {onShare && (
+                <button
+                  onClick={() => {
+                    handleShare(selectedAchievement);
+                    setSelectedAchievement(null);
+                  }}
+                  className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 rounded-xl text-white font-medium transition-all btn-press flex items-center justify-center gap-2"
+                >
+                  <span>📤</span> Share
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

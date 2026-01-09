@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { getLeaderboard, updateScore, LeaderboardEntry } from '../lib/supabase';
 import Achievements from './Achievements';
+import ShareModal from './ShareModal';
 
 interface LeaderboardProps {
   isOpen: boolean;
@@ -30,6 +31,8 @@ export default function Leaderboard({
   const [loading, setLoading] = useState(true);
   const [userRank, setUserRank] = useState<number | null>(null);
   const [timeFilter, setTimeFilter] = useState<'all' | 'week' | 'month'>('all');
+  const [showShare, setShowShare] = useState(false);
+  const [shareData, setShareData] = useState<any>(null);
 
   useEffect(() => {
     if (!isOpen) return;

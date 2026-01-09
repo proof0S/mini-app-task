@@ -5,7 +5,6 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSound } from '../hooks/useSound';
 import CheckInMethodModal from './CheckInMethodModal';
-import ThemePickerModal from './ThemePickerModal';
 import CryptoTracker from './CryptoTracker';
 import Leaderboard from './Leaderboard';
 import Onboarding from './Onboarding';
@@ -15,18 +14,10 @@ import BottomNav from './BottomNav';
 import SettingsPanel from './SettingsPanel';
 import { SkeletonTask, SkeletonProgress } from './Skeleton';
 import WeeklyStats from './WeeklyStats';
-import Achievements from './Achievements';
+import ShareModal from './ShareModal';
+import DailyReward from './DailyReward';
 import { getLeaderboard, updateScore, LeaderboardEntry } from '../lib/supabase';
-
-interface Todo {
-  id: number;
-  text: string;
-  completed: boolean;
-  emoji: string;
-  target?: number;
-  current?: number;
-  unit?: string;
-}
+import { Todo, categories, defaultTodos } from '../types/todo';
 
 interface TodoAppProps {
   user?: {
@@ -37,34 +28,12 @@ interface TodoAppProps {
   } | null;
 }
 
-// Emoji bazlı esprili mesajlar
 const funnyMessages: Record<string, string[]> = {
-  '💧': [
-    "H2O seni seviyor! 💧",
-    "Balıklar kıskanıyor 🐟",
-    "Cilt bakımı +100! ✨",
-  ],
-  '📚': [
-    "Beyin kasları çalışıyor! 🧠",
-    "Einstein kıskanır! 💪",
-    "Netflix üzgün 😅",
-  ],
-  '🏃': [
-    "Usain Bolt izliyor 👀",
-    "Kalorilerin kaçıyor! 🔥",
-    "Ayakkabılar gurur duyuyor 👟",
-  ],
-  '🧘': [
-    "Namaste! ☕",
-    "Stres seviyesi: 📉",
-    "İç huzur: ✅",
-  ],
-  'default': [
-    "Harikasın! 🌟",
-    "Süpersin! 🚀",
-    "Efsane! 👑",
-    "Devam et! 💫",
-  ]
+  '💧': ["H2O seni seviyor! 💧", "Balıklar kıskanıyor 🐟", "Cilt bakımı +100! ✨"],
+  '📚': ["Beyin kasları çalışıyor! 🧠", "Einstein kıskanır! 💪", "Netflix üzgün 😅"],
+  '🏃': ["Usain Bolt izliyor 👀", "Kalorilerin kaçıyor! 🔥", "Ayakkabılar gurur duyuyor 👟"],
+  '🧘': ["Namaste! ☕", "Stres seviyesi: 📉", "İç huzur: ✅"],
+  'default': ["Harikasın! 🌟", "Süpersin! 🚀", "Efsane! 👑", "Devam et! 💫"]
 };
 
 const streakMessages: Record<number, string> = {
@@ -75,10 +44,8 @@ const streakMessages: Record<number, string> = {
   30: "1 ay! Efsane oldun 👑",
 };
 
-// Confetti component
 const Confetti = ({ active }: { active: boolean }) => {
   if (!active) return null;
-  
   const particles = Array.from({ length: 50 }, (_, i) => ({
     id: i,
     left: Math.random() * 100,
@@ -110,7 +77,6 @@ const Confetti = ({ active }: { active: boolean }) => {
   );
 };
 
-// Streak badge
 const StreakBadge = ({ streak }: { streak: number }) => {
   if (streak === 0) return null;
   return (
@@ -121,7 +87,6 @@ const StreakBadge = ({ streak }: { streak: number }) => {
   );
 };
 
-// Progress ring
 const ProgressRing = ({ percentage, accentColor }: { percentage: number; accentColor: string }) => {
   const circumference = 2 * Math.PI * 40;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
@@ -150,7 +115,23 @@ const ProgressRing = ({ percentage, accentColor }: { percentage: number; accentC
   );
 };
 
-// Slider Todo Item
+const CategoryBadge = ({ category }: { category: keyof typeof categories }) => {
+  const cat = categories[category];
+  const colorClasses: Record<string, string> = {
+    green: 'bg-green-500/20 text-green-300 border-green-500/30',
+    blue: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+    purple: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+    orange: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
+    cyan: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+  };
+  
+  return (
+    <span className={`text-[10px] px-2 py-0.5 rounded-full border ${colorClasses[cat.color]}`}>
+      {cat.emoji} {cat.name}
+    </span>
+  );
+};
+
 const SliderTodoItem = ({ todo, onUpdate, onDelete, onComplete, accentColor, playSound, vibrate, index }: { 
   todo: Todo; 
   onUpdate: (id: number, current: number) => void;
@@ -198,6 +179,10 @@ const SliderTodoItem = ({ todo, onUpdate, onDelete, onComplete, accentColor, pla
       style={{ opacity: 0, animationFillMode: 'forwards' }}
     >
       <div className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <CategoryBadge category={todo.category} />
+          {todo.isRecurring && <span className="text-[10px] text-white/50">🔄 Daily</span>}
+        </div>
         <div className="flex items-center mb-3">
           <span className="text-xl mr-2">{todo.emoji}</span>
           <span className={`flex-1 font-semibold ${todo.completed ? 'text-white/60 line-through' : 'text-white'}`}>
@@ -250,7 +235,6 @@ const SliderTodoItem = ({ todo, onUpdate, onDelete, onComplete, accentColor, pla
   );
 };
 
-// Tap Todo Item
 const TapTodoItem = ({ todo, onToggle, onDelete, accentColor, playSound, vibrate, index }: { 
   todo: Todo; 
   onToggle: (id: number) => void;
@@ -279,50 +263,50 @@ const TapTodoItem = ({ todo, onToggle, onDelete, accentColor, playSound, vibrate
       } border border-white/20 backdrop-blur-xl stagger-${Math.min(index + 1, 5)}`}
       style={{ opacity: 0, animationFillMode: 'forwards' }}
     >
-      <div className="flex items-center p-4">
-        <button
-          onClick={handleToggle}
-          className={`relative w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-300 btn-press ${
-            todo.completed 
-              ? 'border-transparent scale-110 shadow-lg' 
-              : 'border-white/50 hover:border-white hover:scale-105 bg-white/10'
-          }`}
-          style={{ backgroundColor: todo.completed ? accentColor : undefined }}
-        >
-          {todo.completed && (
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+      <div className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <CategoryBadge category={todo.category} />
+          {todo.isRecurring && <span className="text-[10px] text-white/50">🔄 Daily</span>}
+        </div>
+        <div className="flex items-center">
+          <button
+            onClick={handleToggle}
+            className={`relative w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-300 btn-press ${
+              todo.completed 
+                ? 'border-transparent scale-110 shadow-lg' 
+                : 'border-white/50 hover:border-white hover:scale-105 bg-white/10'
+            }`}
+            style={{ backgroundColor: todo.completed ? accentColor : undefined }}
+          >
+            {todo.completed && (
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </button>
+
+          <span className="ml-3 text-xl">{todo.emoji}</span>
+          <span className={`ml-3 flex-1 font-semibold transition-all duration-300 ${
+            todo.completed ? 'text-white/60 line-through' : 'text-white'
+          }`}>
+            {todo.text}
+          </span>
+
+          <button
+            onClick={() => onDelete(todo.id)}
+            className="opacity-0 group-hover:opacity-100 p-2 text-white/60 hover:text-red-300 hover:bg-red-500/20 rounded-xl transition-all btn-press"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
-          )}
-        </button>
-
-        <span className="ml-3 text-xl">{todo.emoji}</span>
-        <span className={`ml-3 flex-1 font-semibold transition-all duration-300 ${
-          todo.completed ? 'text-white/60 line-through' : 'text-white'
-        }`}>
-          {todo.text}
-        </span>
-
-        <button
-          onClick={() => onDelete(todo.id)}
-          className="opacity-0 group-hover:opacity-100 p-2 text-white/60 hover:text-red-300 hover:bg-red-500/20 rounded-xl transition-all btn-press"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </button>
+          </button>
+        </div>
       </div>
     </div>
   );
 };
 
 const emojis = ['✨', '🎯', '💪', '📚', '💧', '🏃', '🧘', '💼', '🎨', '🎵', '🍎', '💤'];
-
-const defaultTodos: Todo[] = [
-  { id: 1, text: "Morning workout", completed: false, emoji: "🏃", target: 30, current: 0, unit: "min" },
-  { id: 2, text: "Drink water", completed: false, emoji: "💧", target: 8, current: 0, unit: "glasses" },
-  { id: 3, text: "Read book", completed: false, emoji: "📚", target: 30, current: 0, unit: "pages" },
-];
 
 export default function TodoApp({ user }: TodoAppProps) {
   const { checkInMethod, setShowMethodModal } = useSettings();
@@ -333,6 +317,8 @@ export default function TodoApp({ user }: TodoAppProps) {
   const [newTodo, setNewTodo] = useState('');
   const [newTarget, setNewTarget] = useState('');
   const [newUnit, setNewUnit] = useState('');
+  const [newCategory, setNewCategory] = useState<keyof typeof categories>('personal');
+  const [isRecurring, setIsRecurring] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
   const [celebrationMessage, setCelebrationMessage] = useState('');
   const [streak, setStreak] = useState(1);
@@ -340,30 +326,57 @@ export default function TodoApp({ user }: TodoAppProps) {
   const [selectedEmoji, setSelectedEmoji] = useState('✨');
   const [userScore, setUserScore] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [filterCategory, setFilterCategory] = useState<'all' | keyof typeof categories>('all');
   
-  // UI States
   const [activeTab, setActiveTab] = useState<'tasks' | 'crypto' | 'leaderboard' | 'settings'>('tasks');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareData, setShareData] = useState<any>(null);
+  const [showDailyReward, setShowDailyReward] = useState(false);
 
+  // Günlük sıfırlama ve veri yükleme
   useEffect(() => {
     const savedOnboarding = localStorage.getItem('dailyTasks_onboarded');
     if (!savedOnboarding) {
       setShowOnboarding(true);
     }
 
-    const savedTodos = localStorage.getItem('dailyTasks_todos_v2');
+    const savedTodos = localStorage.getItem('dailyTasks_todos_v3');
     const savedStreak = localStorage.getItem('dailyTasks_streak');
     const savedScore = localStorage.getItem('dailyTasks_score');
     const lastVisit = localStorage.getItem('dailyTasks_lastVisit');
-    
-    if (savedTodos) setTodos(JSON.parse(savedTodos));
-    if (savedStreak) setStreak(parseInt(savedStreak));
-    if (savedScore) setUserScore(parseInt(savedScore));
-    
     const today = new Date().toDateString();
+
+    // Bugün için görevleri kontrol et
     if (lastVisit !== today) {
+      // Yeni gün - önceki günün verilerini kaydet
+      if (lastVisit && savedTodos) {
+        const oldTodos = JSON.parse(savedTodos);
+        const completed = oldTodos.filter((t: Todo) => t.completed).length;
+        localStorage.setItem(`dailyTasks_history_${lastVisit}`, JSON.stringify({
+          completed,
+          total: oldTodos.length,
+          date: lastVisit
+        }));
+      }
+
       localStorage.setItem('dailyTasks_lastVisit', today);
+      
+      // Tekrarlayan görevleri sıfırla
+      if (savedTodos) {
+        const oldTodos: Todo[] = JSON.parse(savedTodos);
+        const resetTodos = oldTodos.map(todo => ({
+          ...todo,
+          completed: todo.isRecurring ? false : todo.completed,
+          current: todo.isRecurring ? 0 : todo.current,
+        }));
+        setTodos(resetTodos);
+        localStorage.setItem('dailyTasks_todos_v3', JSON.stringify(resetTodos));
+        addToast('info', '🌅 New day! Recurring tasks reset.');
+      }
+
+      // Streak hesapla
       if (lastVisit) {
         const lastDate = new Date(lastVisit);
         const todayDate = new Date(today);
@@ -371,7 +384,7 @@ export default function TodoApp({ user }: TodoAppProps) {
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
         if (diffDays === 1) {
-          const newStreak = streak + 1;
+          const newStreak = (parseInt(savedStreak || '1')) + 1;
           setStreak(newStreak);
           localStorage.setItem('dailyTasks_streak', newStreak.toString());
           
@@ -389,16 +402,22 @@ export default function TodoApp({ user }: TodoAppProps) {
         } else if (diffDays > 1) {
           setStreak(1);
           localStorage.setItem('dailyTasks_streak', '1');
+          addToast('warning', '😅 Streak reset! Start fresh today!');
         }
       }
+    } else {
+      // Aynı gün - verileri yükle
+      if (savedTodos) setTodos(JSON.parse(savedTodos));
+      if (savedStreak) setStreak(parseInt(savedStreak));
     }
     
-    // Simulate loading
+    if (savedScore) setUserScore(parseInt(savedScore));
+    
     setTimeout(() => setIsLoading(false), 800);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('dailyTasks_todos_v2', JSON.stringify(todos));
+    localStorage.setItem('dailyTasks_todos_v3', JSON.stringify(todos));
   }, [todos]);
 
   useEffect(() => {
@@ -414,6 +433,16 @@ export default function TodoApp({ user }: TodoAppProps) {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
+  const handleShare = (data: any) => {
+    setShareData(data);
+    setShowShareModal(true);
+  };
+
+  const handleClaimReward = (points: number) => {
+    setUserScore(prev => prev + points);
+    addToast('success', `+${points} points claimed! 🎁`);
+  };
+
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
     localStorage.setItem('dailyTasks_onboarded', 'true');
@@ -421,16 +450,18 @@ export default function TodoApp({ user }: TodoAppProps) {
   };
 
   const calculateTotalProgress = () => {
-    if (todos.length === 0) return 0;
-    const totalPercentage = todos.reduce((sum, todo) => {
+    const filtered = filterCategory === 'all' ? todos : todos.filter(t => t.category === filterCategory);
+    if (filtered.length === 0) return 0;
+    const totalPercentage = filtered.reduce((sum, todo) => {
       const target = todo.target || 1;
       const current = todo.current || 0;
       return sum + Math.min((current / target) * 100, 100);
     }, 0);
-    return totalPercentage / todos.length;
+    return totalPercentage / filtered.length;
   };
 
   const totalProgress = calculateTotalProgress();
+  const filteredTodos = filterCategory === 'all' ? todos : todos.filter(t => t.category === filterCategory);
   const completedCount = todos.filter(t => t.completed).length;
 
   const getFunnyMessage = (emoji: string) => {
@@ -483,13 +514,18 @@ export default function TodoApp({ user }: TodoAppProps) {
         emoji: selectedEmoji,
         target: target,
         current: 0,
-        unit: newUnit || ''
+        unit: newUnit || '',
+        category: newCategory,
+        isRecurring: isRecurring,
+        createdAt: new Date().toISOString(),
       }]);
       setNewTodo('');
       setNewTarget('');
       setNewUnit('');
       setShowAddForm(false);
       setSelectedEmoji('✨');
+      setNewCategory('personal');
+      setIsRecurring(true);
       addToast('success', 'Task added! 🎯');
     }
   };
@@ -520,6 +556,12 @@ export default function TodoApp({ user }: TodoAppProps) {
       {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
       
       <Toast toasts={toasts} onRemove={removeToast} />
+      
+      {showShareModal && shareData && (
+        <ShareModal isOpen={showShareModal} onClose={() => setShowShareModal(false)} shareData={shareData} />
+      )}
+      
+      <DailyReward isOpen={showDailyReward} onClose={() => setShowDailyReward(false)} onClaim={handleClaimReward} streak={streak} />
       <Confetti active={showConfetti} />
       <CheckInMethodModal />
 
@@ -540,7 +582,6 @@ export default function TodoApp({ user }: TodoAppProps) {
 
       <div className="relative z-10 max-w-md mx-auto px-4 py-6">
         
-        {/* Tasks Tab */}
         {activeTab === 'tasks' && (
           <div className="animate-fadeIn">
             {/* Header */}
@@ -553,6 +594,9 @@ export default function TodoApp({ user }: TodoAppProps) {
               </div>
               <div className="flex items-center gap-2">
                 <StreakBadge streak={streak} />
+                <button onClick={() => setShowDailyReward(true)} className="px-3 py-1.5 rounded-full bg-gradient-to-r from-yellow-400/30 to-orange-400/30 border border-yellow-400/30 hover:from-yellow-400/40 hover:to-orange-400/40 transition-all btn-press">
+                  <span className="text-lg">🎁</span>
+                </button>
                 <div className="px-3 py-1.5 rounded-full bg-yellow-400/20 border border-yellow-400/30">
                   <span className="text-white font-bold text-sm">🏆 {userScore}</span>
                 </div>
@@ -577,10 +621,40 @@ export default function TodoApp({ user }: TodoAppProps) {
               </div>
             )}
 
-            {/* Weekly Stats & Achievements */}
+            {/* Weekly Stats */}
             <div className="mb-6">
               <WeeklyStats todos={todos} />
-              
+            </div>
+
+            {/* Category Filter */}
+            <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+              <button
+                onClick={() => setFilterCategory('all')}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all btn-press ${
+                  filterCategory === 'all' 
+                    ? 'bg-white/30 text-white' 
+                    : 'bg-white/10 text-white/60 hover:bg-white/20'
+                }`}
+              >
+                All ({todos.length})
+              </button>
+              {(Object.keys(categories) as Array<keyof typeof categories>).map(key => {
+                const count = todos.filter(t => t.category === key).length;
+                if (count === 0) return null;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setFilterCategory(key)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all btn-press ${
+                      filterCategory === key 
+                        ? 'bg-white/30 text-white' 
+                        : 'bg-white/10 text-white/60 hover:bg-white/20'
+                    }`}
+                  >
+                    {categories[key].emoji} {categories[key].name} ({count})
+                  </button>
+                );
+              })}
             </div>
 
             {/* Mode indicator */}
@@ -598,16 +672,18 @@ export default function TodoApp({ user }: TodoAppProps) {
                   <SkeletonTask />
                   <SkeletonTask />
                 </>
-              ) : todos.length === 0 ? (
+              ) : filteredTodos.length === 0 ? (
                 <EmptyState
                   icon="📝"
                   title="No tasks yet"
-                  description="Add your first task and start building great habits!"
+                  description={filterCategory === 'all' 
+                    ? "Add your first task and start building great habits!"
+                    : `No ${categories[filterCategory as keyof typeof categories]?.name} tasks yet`}
                   actionLabel="Add Task"
                   onAction={() => setShowAddForm(true)}
                 />
               ) : (
-                todos.map((todo, index) => (
+                filteredTodos.map((todo, index) => (
                   checkInMethod === 'swipe' ? (
                     <SliderTodoItem
                       key={todo.id}
@@ -654,6 +730,7 @@ export default function TodoApp({ user }: TodoAppProps) {
               </button>
             ) : (
               <div className="p-4 rounded-3xl bg-white/20 backdrop-blur-xl border border-white/30 shadow-xl animate-scaleIn">
+                {/* Emoji selector */}
                 <div className="flex flex-wrap gap-2 mb-4">
                   {emojis.map(emoji => (
                     <button
@@ -673,6 +750,7 @@ export default function TodoApp({ user }: TodoAppProps) {
                   ))}
                 </div>
 
+                {/* Task name */}
                 <input
                   type="text"
                   value={newTodo}
@@ -682,6 +760,38 @@ export default function TodoApp({ user }: TodoAppProps) {
                   autoFocus
                 />
 
+                {/* Category selector */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {(Object.keys(categories) as Array<keyof typeof categories>).map(key => (
+                    <button
+                      key={key}
+                      onClick={() => setNewCategory(key)}
+                      className={`px-3 py-2 rounded-xl text-xs font-medium transition-all btn-press ${
+                        newCategory === key 
+                          ? 'bg-white/30 text-white ring-2 ring-white/50' 
+                          : 'bg-white/10 text-white/70 hover:bg-white/20'
+                      }`}
+                    >
+                      {categories[key].emoji} {categories[key].name}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Recurring toggle */}
+                <div className="flex items-center justify-between p-3 bg-white/10 rounded-xl mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🔄</span>
+                    <span className="text-white text-sm font-medium">Repeat daily</span>
+                  </div>
+                  <button
+                    onClick={() => setIsRecurring(!isRecurring)}
+                    className={`w-12 h-7 rounded-full transition-all ${isRecurring ? 'bg-green-500' : 'bg-white/20'}`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform ${isRecurring ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+
+                {/* Target and unit (for swipe mode) */}
                 {checkInMethod === 'swipe' && (
                   <div className="flex gap-2 mb-3">
                     <input
@@ -701,6 +811,7 @@ export default function TodoApp({ user }: TodoAppProps) {
                   </div>
                 )}
 
+                {/* Action buttons */}
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowAddForm(false)}
@@ -720,14 +831,12 @@ export default function TodoApp({ user }: TodoAppProps) {
           </div>
         )}
 
-        {/* Crypto Tab */}
         {activeTab === 'crypto' && (
           <div className="animate-fadeIn">
             <CryptoTracker isOpen={true} onClose={() => setActiveTab('tasks')} />
           </div>
         )}
 
-        {/* Leaderboard Tab */}
         {activeTab === 'leaderboard' && (
           <div className="animate-fadeIn">
             <Leaderboard 
@@ -741,16 +850,21 @@ export default function TodoApp({ user }: TodoAppProps) {
           </div>
         )}
 
-        {/* Settings Tab */}
         {activeTab === 'settings' && (
           <div className="animate-fadeIn">
-            <SettingsPanel isOpen={true} onClose={() => setActiveTab('tasks')} user={user} userScore={userScore} tasksCompleted={completedCount} streak={streak} />
+            <SettingsPanel 
+              isOpen={true} 
+              onClose={() => setActiveTab('tasks')} 
+              user={user} 
+              userScore={userScore} 
+              tasksCompleted={completedCount} 
+              streak={streak} 
+            />
           </div>
         )}
 
       </div>
 
-      {/* Bottom Navigation */}
       <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
     </div>
   );
