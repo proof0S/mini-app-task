@@ -1,30 +1,24 @@
-import type { Metadata } from 'next';
-import './globals.css';
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Daily Tasks | Base Mini App',
-  description: 'Build better habits with Daily Tasks - A beautiful task manager for Farcaster',
+  title: "Daily Tasks - Build Better Habits",
+  description: "Track your daily habits, compete with friends, and build a better you. A Farcaster mini app.",
   openGraph: {
-    title: 'Daily Tasks',
-    description: 'Build better habits, one task at a time',
-    images: ['/images/og-image.png'],
+    title: "Daily Tasks - Build Better Habits",
+    description: "Track your daily habits, compete with friends, and build a better you.",
+    images: ["/api/og?type=default"],
   },
   other: {
-    'fc:frame': JSON.stringify({
-      version: "next",
-      imageUrl: `${process.env.NEXT_PUBLIC_URL || 'https://your-app.vercel.app'}/images/og-image.png`,
-      button: {
-        title: "✨ Open App",
-        action: {
-          type: "launch_frame",
-          name: "Daily Tasks",
-          url: process.env.NEXT_PUBLIC_URL || 'https://your-app.vercel.app',
-          splashImageUrl: `${process.env.NEXT_PUBLIC_URL || 'https://your-app.vercel.app'}/images/splash.png`,
-          splashBackgroundColor: "#0066CC"
-        }
-      }
-    })
-  }
+    "fc:frame": "vNext",
+    "fc:frame:image": "/api/og?type=default",
+    "fc:frame:button:1": "🎯 Open App",
+    "fc:frame:button:1:action": "link",
+    "fc:frame:button:1:target": "https://daily-tasks-mini.vercel.app",
+  },
 };
 
 export default function RootLayout({
@@ -34,7 +28,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className={inter.className}>{children}</body>
     </html>
   );
 }
